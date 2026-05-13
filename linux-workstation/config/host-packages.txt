@@ -1,0 +1,28 @@
+# Host management and system tools only.
+# Do not add project language stacks here. Rust, Node, .NET SDKs, databases,
+# package managers, and project CLIs belong in project Distroboxes/devcontainers.
+
+git
+curl
+wget
+ca-certificates
+gnupg
+lsb-release
+build-essential
+flatpak
+gnome-software-plugin-flatpak
+podman
+distrobox
+gnome-boxes
+virt-manager
+timeshift
+neovim
+htop
+btop
+tree
+unzip
+p7zip-full
+jq
+ripgrep
+fd-find
+shellcheck

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cat <<'EOF'
+Ubuntu workstation helpers
+
+Common commands:
+  ws-new <template> <project-name> [options]
+      Create a project-scoped Distrobox.
+
+  ws-enter <project-name>
+      Enter the project Distrobox and start in the project folder.
+
+  ws-list
+      List project environments.
+
+  ws-remove <project-name>
+      Remove a project Distrobox after confirmation.
+
+Templates:
+  rust dotnet node python php generic
+
+Examples:
+  ws-new rust Terrakit
+  ws-new dotnet HackJack --with-devcontainer
+  ws-new node CSIT314-TalentMatching
+  ws-enter Terrakit
+  ws-list
+  ws-remove Terrakit
+
+Project layout:
+  Source:    ~/Projects/<project-name>
+  Box home:  ~/Boxes/projects/<project-name>
+  Box name:  project-<normalized-project-name>
+EOF

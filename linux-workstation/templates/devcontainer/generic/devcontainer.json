@@ -1,0 +1,8 @@
+{
+  "name": "Generic Ubuntu Project",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+}

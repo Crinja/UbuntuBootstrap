@@ -1,0 +1,15 @@
+# Linux workstation helper commands.
+# Source this file from ~/.bashrc:
+#   source /path/to/linux-workstation/dotfiles/bashrc.append
+
+_ws_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+case ":${PATH}:" in
+  *":${_ws_repo_root}/bin:"*)
+    ;;
+  *)
+    export PATH="${_ws_repo_root}/bin:${PATH}"
+    ;;
+esac
+
+unset _ws_repo_root

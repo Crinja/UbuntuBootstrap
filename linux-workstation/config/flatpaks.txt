@@ -1,0 +1,11 @@
+# Desktop applications. Prefer Flatpak for GUI apps so the host apt layer stays
+# focused on OS management.
+
+com.github.tchx84.Flatseal
+com.discordapp.Discord
+com.spotify.Client
+org.videolan.VLC
+md.obsidian.Obsidian
+org.gimp.GIMP
+org.libreoffice.LibreOffice
+com.valvesoftware.Steam

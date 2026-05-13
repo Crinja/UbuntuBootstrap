@@ -1,0 +1,19 @@
+{
+  "name": ".NET Project",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "VARIANT": "8.0-noble"
+    }
+  },
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit"
+      ]
+    }
+  }
+}

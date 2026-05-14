@@ -37,11 +37,45 @@ Inside the Distrobox, the project is mounted at:
 ~/project
 ```
 
+## Base Dev Layer
+
+Every project template runs a shared base development layer first. It installs
+VS Code, Git/Git LFS, SSH, ripgrep, fd, jq, shellcheck, archive tools, and
+desktop integration helpers inside the project Distrobox.
+
+It does not install SDKs. Rust, C++, Java, Node, Python, C#, PHP, databases, and
+project CLIs are installed only by project-specific templates or by the project
+itself.
+
+AI coding agents live in the shared `ai-code` box, not in each project box:
+
+```bash
+ws-ai-setup
+ws-claude TerraKit
+ws-codex TerraKit
+```
+
+`ai-code` sees host projects at `/work/projects`. This keeps agent auth outside
+the host without requiring Claude/Codex setup for every project.
+
+Launch VS Code from the project box:
+
+```bash
+ws-code Terrakit
+```
+
+Skip VS Code for a lighter box:
+
+```bash
+ws-new rust Terrakit --no-ide
+```
+
 ## Create a Rust Environment
 
 ```bash
 ws-new rust Terrakit
 ws-enter Terrakit
+ws-code Terrakit
 ```
 
 The Rust template installs build tools and rustup inside `project-terrakit`.
@@ -57,6 +91,12 @@ ws-enter CSIT314-TalentMatching
 The Node template installs nvm and latest LTS Node inside that one project box.
 Node and npm are not installed on the host.
 
+`js` is also accepted:
+
+```bash
+ws-new js FrontendExperiment
+```
+
 ## Create a .NET Environment
 
 ```bash
@@ -67,13 +107,35 @@ ws-enter HackJack
 The .NET template installs prerequisites and leaves SDK selection to the project.
 Pin SDKs with `global.json` and install the matching SDK inside the project box.
 
+`csharp`, `c#`, and `cs` are accepted aliases for the C# template.
+
+## Create C++ and Java Environments
+
+```bash
+ws-new cpp EngineExperiment
+ws-new java CourseworkTool
+```
+
+C++ and Java SDKs are installed in those project boxes only.
+
+## Nightly or Weird Toolchains
+
+Use a dedicated project box for unusual toolchains:
+
+```bash
+ws-new rust-nightly CompilerExperiment
+```
+
+Nightly Rust belongs in that project box, not in `dev-base` and not on the host.
+
 ## Add a New Template
 
 1. Add `templates/project-envs/<name>.sh`.
-2. Make it idempotent.
-3. Install tools inside the Distrobox only.
-4. Add an optional devcontainer template under `templates/devcontainer/<name>/`.
-5. Document the new template in `templates/project-envs/README.md`.
+2. Assume `_dev-base.sh` has already installed editor/Git basics.
+3. Make it idempotent.
+4. Install language tools inside the Distrobox only.
+5. Add an optional devcontainer template under `templates/devcontainer/<name>/`.
+6. Document the new template in `templates/project-envs/README.md`.
 
 Then run:
 

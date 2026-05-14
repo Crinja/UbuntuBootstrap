@@ -16,7 +16,7 @@ Usage:
   ./scripts/create-base-boxes.sh [--dry-run]
 
 Creates base boxes from config/base-boxes.conf:
-  name|image|home
+  name|image|home|optional-semicolon-separated-volumes
 EOF
 }
 
@@ -47,7 +47,32 @@ fi
 
 config_file="${REPO_ROOT}/config/base-boxes.conf"
 
-while IFS='|' read -r name image home_path; do
+expand_volume_spec() {
+  local spec="$1"
+  local source_path
+  local rest
+
+  if [[ "$spec" == *:* ]]; then
+    source_path="${spec%%:*}"
+    rest="${spec#*:}"
+    printf '%s:%s\n' "$(expand_user_path "$source_path")" "$rest"
+  else
+    expand_user_path "$spec"
+  fi
+}
+
+ensure_volume_source_dir() {
+  local spec="$1"
+  local source_path
+
+  source_path="${spec%%:*}"
+
+  if [[ "$source_path" = /* ]]; then
+    ensure_dir "$source_path"
+  fi
+}
+
+while IFS='|' read -r name image home_path volumes; do
   [[ -n "${name:-}" ]] || continue
   [[ -n "${image:-}" ]] || die "Missing image for base box '$name'."
   [[ -n "${home_path:-}" ]] || die "Missing home path for base box '$name'."
@@ -56,13 +81,31 @@ while IFS='|' read -r name image home_path; do
 
   ensure_dir "$home_path"
 
+  create_args=(
+    distrobox-create
+    --name "$name"
+    --image "$image"
+    --home "$home_path"
+    --yes
+  )
+
+  if [[ -n "${volumes:-}" ]]; then
+    IFS=';' read -r -a volume_specs <<<"$volumes"
+    for volume_spec in "${volume_specs[@]}"; do
+      [[ -n "$volume_spec" ]] || continue
+      expanded_volume="$(expand_volume_spec "$volume_spec")"
+      ensure_volume_source_dir "$expanded_volume"
+      create_args+=(--volume "$expanded_volume")
+    done
+  fi
+
   if distrobox_exists "$name"; then
     log "Base box already exists: $name"
     continue
   fi
 
   log "Creating base box '$name' from '$image' with home '$home_path'."
-  run distrobox-create --name "$name" --image "$image" --home "$home_path" --yes
+  run "${create_args[@]}"
 done < <(read_config_lines "$config_file")
 
 log "Base Distrobox creation complete. Boxes are not entered automatically."

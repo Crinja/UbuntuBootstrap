@@ -14,12 +14,13 @@ Usage:
   ./scripts/create-project-env.sh <template> <project-name> [options]
 
 Templates:
-  rust dotnet node python php generic
+  rust rust-nightly cpp csharp dotnet java js node python php generic
 
 Options:
   --image <image>          Container image to use. Default: ubuntu:24.04
   --with-devcontainer      Copy matching templates/devcontainer/<template>/ files
   --force                  Allow overwriting generated .devcontainer
+  --no-ide                 Do not install VS Code in the project box
   --no-template-run        Create the box but skip running the project template
   --dry-run, -n            Print intended changes without applying them
 
@@ -27,13 +28,59 @@ Examples:
   ./scripts/create-project-env.sh rust Terrakit
   ./scripts/create-project-env.sh dotnet HackJack --with-devcontainer
   ./scripts/create-project-env.sh node CSIT314-TalentMatching
+  ./scripts/create-project-env.sh cpp EngineExperiment
 EOF
+}
+
+normalize_template_name() {
+  local raw="$1"
+  local lowered
+
+  lowered="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+
+  case "$lowered" in
+    c++|cpp|cplusplus)
+      printf 'cpp\n'
+      ;;
+    c#|csharp|cs)
+      printf 'csharp\n'
+      ;;
+    js|javascript)
+      printf 'js\n'
+      ;;
+    nightly-rust|rust-nightly)
+      printf 'rust-nightly\n'
+      ;;
+    *)
+      printf '%s\n' "$lowered"
+      ;;
+  esac
+}
+
+devcontainer_template_name() {
+  local normalized="$1"
+
+  case "$normalized" in
+    csharp)
+      printf 'dotnet\n'
+      ;;
+    js)
+      printf 'node\n'
+      ;;
+    rust-nightly)
+      printf 'rust\n'
+      ;;
+    *)
+      printf '%s\n' "$normalized"
+      ;;
+  esac
 }
 
 image="ubuntu:24.04"
 with_devcontainer=0
 force=0
 run_template=1
+install_vscode=1
 template=""
 project_name=""
 
@@ -47,7 +94,7 @@ if [[ $# -lt 1 ]]; then
   exit 1
 fi
 
-template="${1:-}"
+template="$(normalize_template_name "${1:-}")"
 project_name="${2:-}"
 
 if [[ -z "$template" || -z "$project_name" ]]; then
@@ -72,6 +119,10 @@ while [[ $# -gt 0 ]]; do
       force=1
       shift
       ;;
+    --no-ide)
+      install_vscode=0
+      shift
+      ;;
     --no-template-run)
       run_template=0
       shift
@@ -92,8 +143,12 @@ done
 
 section "Project environment creation"
 
+[[ "$template" =~ ^[a-z0-9._-]+$ ]] || die "Template name contains unsupported characters after normalization: $template"
+
 template_script="${REPO_ROOT}/templates/project-envs/${template}.sh"
+base_dev_template="${REPO_ROOT}/templates/project-envs/_dev-base.sh"
 [[ -f "$template_script" ]] || die "Unknown project template '$template'. Expected $template_script"
+[[ -f "$base_dev_template" ]] || die "Missing base dev template: $base_dev_template"
 
 normalized_project="$(normalize_project_name "$project_name")"
 box_name="project-${normalized_project}"
@@ -102,7 +157,7 @@ box_home="${HOME}/Boxes/projects/${project_name}"
 project_mount="/work/${normalized_project}"
 
 if [[ "$with_devcontainer" -eq 1 ]]; then
-  devcontainer_template="${REPO_ROOT}/templates/devcontainer/${template}"
+  devcontainer_template="${REPO_ROOT}/templates/devcontainer/$(devcontainer_template_name "$template")"
   [[ -d "$devcontainer_template" ]] || die "No devcontainer template exists for '$template'."
 fi
 
@@ -111,6 +166,11 @@ log "Distrobox: ${box_name}"
 log "Source folder: ${project_dir}"
 log "Box home: ${box_home}"
 log "Image: ${image}"
+if [[ "$install_vscode" -eq 1 ]]; then
+  log "IDE: VS Code will be installed inside the project box"
+else
+  log "IDE: skipped because --no-ide was passed"
+fi
 
 ensure_dir "$project_dir"
 ensure_dir "$box_home"
@@ -136,11 +196,15 @@ else
 fi
 
 if [[ "$run_template" -eq 1 ]]; then
-  log "Running template '$template' inside '$box_name'."
+  log "Running base dev layer and '$template' template inside '$box_name'."
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
-    log "Would run ${template_script} inside ${box_name}."
+    log "Would run ${base_dev_template} and ${template_script} inside ${box_name}."
   else
-    distrobox-enter --name "$box_name" -- bash -s -- "$project_mount" "$project_name" < "$template_script"
+    {
+      cat "$base_dev_template"
+      printf '\n'
+      cat "$template_script"
+    } | distrobox-enter --name "$box_name" -- env WS_INSTALL_VSCODE="$install_vscode" bash -s -- "$project_mount" "$project_name"
   fi
 else
   log "Skipping template run because --no-template-run was passed."

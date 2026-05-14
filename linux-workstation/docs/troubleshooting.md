@@ -68,19 +68,69 @@ Templates are designed to be idempotent.
 
 ## PATH Does Not Find ws-new or ws-enter
 
-Add the Bash snippet:
+Run the shell integration script:
 
 ```bash
-echo "source \"/path/to/linux-workstation/dotfiles/bashrc.append\"" >> ~/.bashrc
+./scripts/install-shell-integration.sh
 source ~/.bashrc
 ```
 
-Use the real path where this repo is cloned. Confirm:
+Confirm:
 
 ```bash
 command -v ws-new
 command -v ws-enter
 ```
+
+## VS Code Does Not Launch From ws-code
+
+Confirm the selected box exists:
+
+```bash
+distrobox-list
+```
+
+Confirm VS Code is installed inside that box:
+
+```bash
+distrobox-enter --name project-terrakit -- command -v code
+```
+
+For the base editor box, configure it first:
+
+```bash
+distrobox-enter --name dev-base -- bash -s < boxes/dev-base.sh
+ws-code --base
+```
+
+If GUI windows do not appear, test another simple GUI app from inside the box and
+check Wayland/X11 integration for your Distrobox version and desktop session.
+
+## Claude Code or Codex Is Missing
+
+Configure the shared AI tools box:
+
+```bash
+ws-ai-setup
+```
+
+Then check inside the box:
+
+```bash
+distrobox-enter --name ai-code
+command -v claude
+command -v codex
+```
+
+Run agents against a project from the host:
+
+```bash
+ws-claude TerraKit
+ws-codex TerraKit
+```
+
+Claude Code and Codex CLI require network access for install and authentication.
+Do not install them on the host.
 
 ## NVIDIA and GPU Caveats
 
@@ -93,9 +143,12 @@ confirm the host driver works outside containers.
 Steam Flatpak is a good default for host cleanliness and is included in
 `config/flatpaks.txt`.
 
+There is no default gaming Distrobox. Create one manually only when Flatpak
+Steam is not enough for a specific launcher, mod manager, or experiment.
+
 Gaming inside Distrobox can work, but compatibility varies. Anti-cheat, Proton,
-controller support, and GPU integration may behave differently than a normal
-host install.
+controller support, and GPU integration may behave differently than Steam
+Flatpak or a normal host install.
 
 ## When To Use a VM Instead
 

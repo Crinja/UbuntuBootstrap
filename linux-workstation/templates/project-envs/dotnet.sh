@@ -29,6 +29,9 @@ Microsoft's Ubuntu package feed is the usual route for SDK installs, but this
 template intentionally does not pick a version for you. Pinning the SDK is a
 project decision, not a host decision.
 
+Optional one-shot install:
+  DOTNET_SDK_PACKAGE=dotnet-sdk-8.0 ws-new dotnet MyApi
+
 Example global.json shape:
   {
     "sdk": {
@@ -38,6 +41,11 @@ Example global.json shape:
   }
 
 EOF
+
+if [[ -n "${DOTNET_SDK_PACKAGE:-}" ]]; then
+  echo "Installing requested .NET SDK package: ${DOTNET_SDK_PACKAGE}"
+  sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "$DOTNET_SDK_PACKAGE"
+fi
 
 if command -v dotnet >/dev/null 2>&1; then
   dotnet --info

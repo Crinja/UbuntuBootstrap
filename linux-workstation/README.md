@@ -18,22 +18,22 @@ is included for host rollback.
 - Configures Flatpak and Flathub.
 - Installs desktop apps from `config/flatpaks.txt`.
 - Creates a predictable folder layout under your home directory.
-- Creates broad base Distroboxes: `uni-work`, `gaming`, and `experimental`.
+- Creates broad base Distroboxes: `ai-code`, `dev-base`, and `experimental`.
 - Provides project-scoped environment tooling:
   - `ws-new rust Terrakit`
   - `ws-enter Terrakit`
+  - `ws-code Terrakit`
   - `ws-list`
   - `ws-remove Terrakit`
 - Optionally generates `.devcontainer` folders per project.
-- Includes an optional `installer/autoinstall.example.yaml` for VM-first Ubuntu
-  installs.
 
 ## What This Deliberately Does Not Do
 
 - It does not install Rust, Node, .NET SDKs, databases, or project CLIs on the host.
+- It does not install VS Code on the host.
+- It does not install Claude Code, Codex CLI, or other AI coding agents on the host.
 - It does not create broad long-lived `dev-rust`, `dev-node`, or `dev-dotnet` boxes.
 - It does not repartition disks, configure disk encryption, or delete user data.
-- It does not run `autoinstall.yaml` or automate OS installation from bootstrap.
 - It does not add random PPAs by default.
 - It does not treat Distrobox as a malware sandbox.
 
@@ -53,18 +53,12 @@ Then reboot, open a terminal, and run:
 
 ```bash
 ./scripts/verify.sh
-echo "source \"$(pwd)/dotfiles/bashrc.append\"" >> ~/.bashrc
 source ~/.bashrc
 ws-new rust Terrakit
 ws-enter Terrakit
 ```
 
 For the detailed checklist, see `docs/vm-test-plan.md`.
-
-An optional installer template is available at
-`installer/autoinstall.example.yaml`. It keeps storage, identity, and network
-interactive by default because autoinstall can wipe disks if made fully
-non-interactive.
 
 ## Real Machine Install
 
@@ -76,24 +70,50 @@ sudo apt install -y git
 git clone <your-repo-url> linux-workstation
 cd linux-workstation
 bash ./bootstrap.sh
-echo "source \"$(pwd)/dotfiles/bashrc.append\"" >> ~/.bashrc
 source ~/.bashrc
 ```
+
+`bootstrap.sh` adds the `ws-*` commands to `~/.bashrc` automatically. Run
+`source ~/.bashrc` in the current terminal or open a new one.
 
 If executable bits are preserved in your clone, `./bootstrap.sh` is also fine.
 Using `bash ./bootstrap.sh` works even when the executable bit was not preserved.
 
 ## Common Workflow
 
+Configure the optional SDK-free editor box:
+
+```bash
+distrobox-enter --name dev-base -- bash -s < boxes/dev-base.sh
+ws-code --base
+```
+
+Configure the shared AI coding tools box once:
+
+```bash
+ws-ai-setup
+ws-claude Terrakit
+ws-codex Terrakit
+```
+
+Create project boxes:
+
 ```bash
 ws-new rust Terrakit
 ws-enter Terrakit
+ws-code Terrakit
 
 ws-new dotnet HackJack --with-devcontainer
 ws-enter HackJack
 
 ws-new node CSIT314-TalentMatching
 ws-enter CSIT314-TalentMatching
+
+ws-new cpp EngineExperiment
+ws-code EngineExperiment
+
+ws-new rust-nightly CompilerExperiment
+ws-code CompilerExperiment
 
 ws-list
 ws-remove Terrakit
@@ -123,16 +143,32 @@ CSIT314-TalentMatching    -> project-csit314-talentmatching
 ## When To Use What
 
 Use host `apt` for drivers, desktop integration, Flatpak, Podman, Distrobox, VM
-tools, rollback tools, file tools, and a basic editor or terminal.
+tools, rollback tools, file tools, and a terminal/basic editor if desired.
+
+Do not install VS Code on the host. VS Code belongs in `dev-base` for general
+editing or inside project boxes through `ws-new`.
 
 Use Flatpak for GUI apps such as Discord, Spotify, VLC, Obsidian, GIMP,
 LibreOffice, Steam, and Flatseal.
 
+Use Steam Flatpak for normal gaming. A Distrobox gaming setup can still be made
+manually later for special cases, but it is not part of the default bootstrap.
+
 Use a project Distrobox for serious development work. Each project gets its own
-box, custom home, source folder, and toolchain.
+box, custom home, source folder, IDE, and toolchain.
+
+Use `ai-code` for Claude Code and Codex CLI. It is a single shared Distrobox
+outside the host with `~/Projects` mounted at `/work/projects`, so you configure
+agent auth once and point it at whichever project you are working on:
+
+```bash
+ws-claude Terrakit
+ws-codex Terrakit
+```
 
 Use a base Distrobox for broad task categories that are not specific software
-stacks: `uni-work`, `gaming`, and `experimental`.
+stacks: `ai-code`, `dev-base`, and `experimental`. `dev-base` is the SDK-free
+editor/Git box. `ai-code` is the shared AI coding tools box.
 
 Use devcontainers when a repository needs editor-integrated reproducibility or
 when collaborators already expect `.devcontainer`.
@@ -149,16 +185,22 @@ Distrobox.
 
 Base boxes are broad work areas:
 
-- `uni-work`
-- `gaming`
+- `dev-base`
+- `ai-code`
 - `experimental`
 
-They are not language environments and should not become dumping grounds for
-every SDK.
+They are not language environments and should not become dumping grounds for every
+SDK. `dev-base` is allowed to contain VS Code, Git, SSH, and command-line basics.
+`ai-code` is allowed to contain Claude Code, Codex CLI, and their Node runtime.
+Neither should contain Rust, project Node stacks, .NET SDKs, JDKs, databases, or
+project CLIs.
 
 Project boxes are preferred for development because they give each repository
 proper control over its own tooling. A Rust game, a .NET API, and a Node
 coursework project should not share one long-lived global development box.
+
+Project templates build on the same base development layer as `dev-base`, then
+add project-specific tooling such as Rust, C++, Java, Node, Python, or C#.
 
 ## Security Boundary Notes
 

@@ -12,7 +12,7 @@ usage() {
 Usage:
   ./scripts/verify.sh
 
-Checks host tools, folders, base boxes, configured Flatpaks, wrappers, and PATH instructions.
+Checks host tools, folders, base boxes, configured Flatpaks, wrappers, and Bash integration.
 EOF
 }
 
@@ -113,7 +113,7 @@ else
   check_fail "Flatpak app status available"
 fi
 
-for wrapper in ws-new ws-enter ws-list ws-remove ws-help; do
+for wrapper in ws-new ws-enter ws-code ws-ai-setup ws-claude ws-codex ws-ai-shell ws-list ws-remove ws-help; do
   if [[ -x "${REPO_ROOT}/bin/${wrapper}" ]]; then
     check_pass "wrapper executable: $wrapper"
   else
@@ -122,9 +122,15 @@ for wrapper in ws-new ws-enter ws-list ws-remove ws-help; do
 done
 
 if [[ -f "${REPO_ROOT}/dotfiles/bashrc.append" ]]; then
-  check_pass "PATH instructions available: dotfiles/bashrc.append"
+  check_pass "Bash integration snippet exists: dotfiles/bashrc.append"
 else
-  check_fail "PATH instructions available: dotfiles/bashrc.append"
+  check_fail "Bash integration snippet exists: dotfiles/bashrc.append"
+fi
+
+if [[ -f "${HOME}/.bashrc" ]] && grep -Fxq "# >>> linux-workstation ws commands >>>" "${HOME}/.bashrc"; then
+  check_pass "~/.bashrc sources workstation commands"
+else
+  check_fail "~/.bashrc sources workstation commands"
 fi
 
 printf '\nSummary: %s passed, %s failed\n' "$ok" "$fail"

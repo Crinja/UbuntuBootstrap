@@ -21,6 +21,18 @@ It asks separately before deleting:
 EOF
 }
 
+remove_distrobox_container() {
+  local name="$1"
+
+  if command_exists distrobox-rm || [[ "${WS_DRY_RUN}" == "1" ]]; then
+    run distrobox-rm "$name" --force
+  elif command_exists distrobox; then
+    run distrobox rm "$name" --force
+  else
+    die "Neither distrobox-rm nor distrobox is installed."
+  fi
+}
+
 project_name=""
 
 if [[ $# -gt 0 && ( "$1" == "--help" || "$1" == "-h" ) ]]; then
@@ -63,11 +75,17 @@ log "Distrobox: ${box_name}"
 log "Project source folder will be preserved: ${project_dir}"
 log "Box home: ${box_home}"
 
-command_exists distrobox-rm || die "distrobox-rm is not installed."
+if ! command_exists distrobox-rm && ! command_exists distrobox; then
+  if [[ "${WS_DRY_RUN}" == "1" ]]; then
+    warn "Distrobox is not installed, but continuing because dry-run mode is enabled."
+  else
+    die "Neither distrobox-rm nor distrobox is installed."
+  fi
+fi
 
-if distrobox_exists "$box_name"; then
+if [[ "${WS_DRY_RUN}" == "1" ]] || distrobox_exists "$box_name"; then
   if confirm "Remove Distrobox '${box_name}'?"; then
-    run distrobox-rm --name "$box_name" --force
+    remove_distrobox_container "$box_name"
   else
     log "Distrobox removal cancelled."
   fi

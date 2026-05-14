@@ -34,12 +34,16 @@ retire, or rebuild without contaminating the host or other projects.
 
 Base boxes exist for broad categories:
 
-- `uni-work`
-- `gaming`
+- `ai-code`
+- `dev-base`
 - `experimental`
 
-They are intentionally not language stacks. A base box is useful for general
-tasks, not for turning the host into a hidden global development environment.
+They are intentionally not language stacks. `dev-base` contains VS Code, Git,
+SSH, and workflow basics. `ai-code` contains Claude Code, Codex CLI, and only the
+runtime needed for those tools. Neither should become a project SDK box.
+
+Project templates reuse the same base development layer, then add language
+tooling inside the project box where it belongs.
 
 ## Devcontainers for Repository Reproducibility
 

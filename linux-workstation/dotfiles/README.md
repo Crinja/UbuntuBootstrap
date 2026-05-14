@@ -5,14 +5,19 @@ deliberate and visible.
 
 ## Bash helpers
 
-To add `ws-new`, `ws-enter`, `ws-list`, `ws-remove`, and `ws-help` to your shell:
+`bootstrap.sh` installs the Bash integration automatically by adding a managed
+block to `~/.bashrc`.
+
+Manual install or repair:
+
+To add all `ws-*` helper commands to your shell:
 
 ```bash
-echo 'source "/path/to/linux-workstation/dotfiles/bashrc.append"' >> ~/.bashrc
+./scripts/install-shell-integration.sh
 source ~/.bashrc
 ```
 
-Use the real path where you cloned this repository.
+Run the command from the repository root.
 
 ## Git config
 

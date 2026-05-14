@@ -17,14 +17,39 @@ Common commands:
   ws-remove <project-name>
       Remove a project Distrobox after confirmation.
 
+  ws-code <project-name> [code-args...]
+      Launch VS Code from the project Distrobox.
+
+  ws-code --base [code-args...]
+      Launch VS Code from the SDK-free dev-base box.
+
+  ws-ai-setup
+      Configure the shared ai-code box with Claude Code and Codex CLI.
+
+  ws-claude <project-name> [claude-args...]
+      Run Claude Code from ai-code in the selected project folder.
+
+  ws-codex <project-name> [codex-args...]
+      Run Codex CLI from ai-code in the selected project folder.
+
+  ws-ai-shell <project-name>
+      Enter ai-code in the selected project folder.
+
 Templates:
-  rust dotnet node python php generic
+  rust rust-nightly cpp csharp dotnet java js node python php generic
 
 Examples:
   ws-new rust Terrakit
   ws-new dotnet HackJack --with-devcontainer
   ws-new node CSIT314-TalentMatching
+  ws-new cpp EngineExperiment
+  ws-new rust-nightly CompilerExperiment
   ws-enter Terrakit
+  ws-code Terrakit
+  ws-code --base
+  ws-ai-setup
+  ws-claude Terrakit
+  ws-codex Terrakit
   ws-list
   ws-remove Terrakit
 

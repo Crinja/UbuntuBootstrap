@@ -18,48 +18,52 @@ machine.
    cd linux-workstation
    ```
 
-4. Optional: review the autoinstall example if you want to automate VM OS
-   installation before running this bootstrap:
-
-   ```bash
-   less installer/autoinstall.example.yaml
-   ```
-
-   Keep storage interactive until you are comfortable with the installer flow.
-
-5. Run the bootstrap:
+4. Run the bootstrap:
 
    ```bash
    bash ./bootstrap.sh
    ```
 
-6. Reboot the VM.
-7. Run verification:
+5. Reboot the VM.
+6. Run verification:
 
    ```bash
    ./scripts/verify.sh
    ```
 
-8. Add wrapper commands to PATH:
+7. Load the wrapper commands in the current terminal. Bootstrap already added
+   them to `~/.bashrc` for new Bash terminals:
 
    ```bash
-   echo "source \"$(pwd)/dotfiles/bashrc.append\"" >> ~/.bashrc
    source ~/.bashrc
    ```
 
-9. Create a Rust project environment:
+8. Configure the optional SDK-free `dev-base` editor box:
+
+   ```bash
+   distrobox-enter --name dev-base -- bash -s < boxes/dev-base.sh
+   ws-code --base
+   ```
+
+9. Optional: configure the shared AI coding tools box:
+
+   ```bash
+   ws-ai-setup
+   ```
+
+10. Create a Rust project environment:
 
    ```bash
    ws-new rust Terrakit
    ```
 
-10. Enter the Rust environment:
+11. Enter the Rust environment:
 
    ```bash
    ws-enter Terrakit
    ```
 
-11. Compile a hello-world Rust project inside the box:
+12. Compile a hello-world Rust project inside the box:
 
     ```bash
     cd ~/project
@@ -68,13 +72,20 @@ machine.
     exit
     ```
 
-12. Confirm Rust is not installed on the host:
+13. Confirm Rust is not installed on the host:
 
     ```bash
     command -v rustc && echo "Unexpected host rustc" || echo "No host rustc"
     ```
 
-13. Create a Node project environment:
+14. Optional: run the shared AI tools against the Rust project:
+
+    ```bash
+    ws-claude Terrakit
+    ws-codex Terrakit
+    ```
+
+15. Create a Node project environment:
 
     ```bash
     ws-new node TestNode
@@ -84,32 +95,32 @@ machine.
     exit
     ```
 
-14. Confirm Node is not installed on the host:
+16. Confirm Node is not installed on the host:
 
     ```bash
     command -v node && echo "Unexpected host node" || echo "No host node"
     ```
 
-15. Re-run the bootstrap to test idempotency:
+17. Re-run the bootstrap to test idempotency:
 
     ```bash
     bash ./bootstrap.sh
     ```
 
-16. Re-run the Rust project creation to confirm it does not damage the existing
+18. Re-run the Rust project creation to confirm it does not damage the existing
     environment:
 
     ```bash
     ws-new rust Terrakit
     ```
 
-17. List project environments:
+19. List project environments:
 
     ```bash
     ws-list
     ```
 
-18. Remove the Node test environment and confirm project files are preserved by
+20. Remove the Node test environment and confirm project files are preserved by
     default:
 
     ```bash

@@ -18,7 +18,8 @@ Bootstraps the Ubuntu host in this order:
   2. install-flatpaks.sh
   3. create-folders.sh
   4. create-base-boxes.sh
-  5. verify.sh
+  5. install-shell-integration.sh
+  6. verify.sh
 
 This script refuses to run as root. It installs only host management tools;
 project language stacks belong inside project Distroboxes or devcontainers.
@@ -69,6 +70,9 @@ bash "${REPO_ROOT}/scripts/create-folders.sh"
 section "Creating base Distroboxes"
 bash "${REPO_ROOT}/scripts/create-base-boxes.sh"
 
+section "Installing Bash wrapper commands"
+bash "${REPO_ROOT}/scripts/install-shell-integration.sh"
+
 section "Verifying setup"
 if [[ "${WS_DRY_RUN}" == "1" ]]; then
   warn "Skipping verify.sh in dry-run mode because setup changes were not applied."
@@ -76,17 +80,6 @@ else
   bash "${REPO_ROOT}/scripts/verify.sh"
 fi
 
-section "Shell PATH setup"
-cat <<EOF
-Wrapper commands live in:
-  ${REPO_ROOT}/bin
-
-To add them to Bash, source the repo snippet from ~/.bashrc:
-  echo 'source "${REPO_ROOT}/dotfiles/bashrc.append"' >> ~/.bashrc
-
-Then open a new terminal or run:
-  source ~/.bashrc
-EOF
-
 section "Done"
 log "Host stays lean; serious tooling goes into project boxes."
+log "Open a new terminal or run 'source ~/.bashrc' to use the ws-* helper commands."

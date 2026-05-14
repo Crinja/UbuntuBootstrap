@@ -12,7 +12,7 @@ The host is the management OS. Keep it small, boring, and recoverable.
 - Podman.
 - Distrobox.
 - VM tools such as GNOME Boxes and virt-manager.
-- A basic editor or terminal if desired.
+- A terminal and a small editor such as `neovim` if desired.
 - Diagnostics such as `htop`, `btop`, `tree`, `jq`, `ripgrep`, and `shellcheck`.
 
 ## Does Not Belong on the Host
@@ -20,6 +20,9 @@ The host is the management OS. Keep it small, boring, and recoverable.
 - Rust toolchains.
 - Node/npm.
 - .NET SDKs.
+- VS Code.
+- Claude Code, Codex CLI, or other AI coding agents.
+- JDKs and language IDE bundles.
 - Databases such as MongoDB, Postgres, MySQL, or Redis.
 - Random language package managers.
 - Global pip/npm/cargo tools.

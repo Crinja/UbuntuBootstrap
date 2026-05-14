@@ -10,10 +10,9 @@ echo "Project mount: ${project_mount}"
 
 sudo apt-get update
 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  git \
-  curl \
-  wget \
   ca-certificates \
-  build-essential
+  curl \
+  git \
+  wget
 
-echo "Generic project box is ready."
+echo "Generic project box is ready. No language SDKs were installed."

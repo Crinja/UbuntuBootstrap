@@ -103,9 +103,28 @@ fi
 
 case "$tool" in
   shell)
-    exec distrobox-enter --name ai-code -- bash -lc 'if [ -s "${HOME}/.nvm/nvm.sh" ]; then . "${HOME}/.nvm/nvm.sh"; fi; cd "$1" || exit 1; exec "${SHELL:-bash}" -l' _ "$box_project_path"
+    exec distrobox-enter --name ai-code -- bash -lc '
+      if [ -s "${HOME}/.nvm/nvm.sh" ]; then
+        . "${HOME}/.nvm/nvm.sh"
+        nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+      fi
+      cd "$1" || exit 1
+      exec "${SHELL:-bash}" -l
+    ' _ "$box_project_path"
     ;;
   claude|codex)
-    exec distrobox-enter --name ai-code -- bash -lc 'if [ -s "${HOME}/.nvm/nvm.sh" ]; then . "${HOME}/.nvm/nvm.sh"; fi; cd "$1" || exit 1; shift; exec "$@"' _ "$box_project_path" "$tool" "$@"
+    exec distrobox-enter --name ai-code -- bash -lc '
+      if [ -s "${HOME}/.nvm/nvm.sh" ]; then
+        . "${HOME}/.nvm/nvm.sh"
+        nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+      fi
+      cd "$1" || exit 1
+      shift
+      if ! command -v "$1" >/dev/null 2>&1; then
+        printf "ERROR: %s was not found inside ai-code. Run: ws-ai-setup\n" "$1" >&2
+        exit 127
+      fi
+      exec "$@"
+    ' _ "$box_project_path" "$tool" "$@"
     ;;
 esac

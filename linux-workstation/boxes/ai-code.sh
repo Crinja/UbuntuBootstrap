@@ -44,6 +44,22 @@ nvm install --lts
 nvm alias default 'lts/*'
 nvm use default
 
+nvm_block_start="# >>> ai-code nvm >>>"
+nvm_block_end="# <<< ai-code nvm <<<"
+
+if ! grep -Fxq "$nvm_block_start" "${HOME}/.bashrc" 2>/dev/null; then
+  cat >>"${HOME}/.bashrc" <<'EOF'
+
+# >>> ai-code nvm >>>
+export NVM_DIR="${HOME}/.nvm"
+if [ -s "${NVM_DIR}/nvm.sh" ]; then
+  . "${NVM_DIR}/nvm.sh"
+  nvm use default --silent >/dev/null 2>&1 || true
+fi
+# <<< ai-code nvm <<<
+EOF
+fi
+
 npm install -g @anthropic-ai/claude-code
 npm install -g @openai/codex
 

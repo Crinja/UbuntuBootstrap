@@ -122,6 +122,12 @@ command -v claude
 command -v codex
 ```
 
+If those commands are missing but Node was installed with nvm, rerun:
+
+```bash
+ws-ai-setup
+```
+
 Run agents against a project from the host:
 
 ```bash

@@ -128,6 +128,10 @@ If those commands are missing but Node was installed with nvm, rerun:
 ws-ai-setup
 ```
 
+If nvm reports that `NVM_DIR` points at a directory that does not exist, update
+the repo and rerun `ws-ai-setup`. The setup script creates `~/.nvm` inside the
+custom `ai-code` home before running the installer.
+
 Run agents against a project from the host:
 
 ```bash

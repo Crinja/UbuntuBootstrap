@@ -21,7 +21,8 @@ RUN useradd -m -s /bin/bash "${USERNAME}" \
 USER "${USERNAME}"
 WORKDIR "/home/${USERNAME}"
 
-RUN curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash \
+RUN mkdir -p "${NVM_DIR}" \
+  && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash \
   && bash -lc "source '${NVM_DIR}/nvm.sh' && nvm install --lts && nvm alias default 'lts/*'"
 
 RUN printf '%s\n' \

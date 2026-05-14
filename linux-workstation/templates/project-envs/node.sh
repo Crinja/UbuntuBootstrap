@@ -17,6 +17,7 @@ sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
   build-essential
 
 export NVM_DIR="${HOME}/.nvm"
+mkdir -p "$NVM_DIR"
 
 if [[ ! -s "${NVM_DIR}/nvm.sh" ]]; then
   curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash

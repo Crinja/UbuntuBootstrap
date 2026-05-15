@@ -174,6 +174,20 @@ such as `cargo`, `node`, `dotnet`, and `python3` are still shimmed as a fallback
 The bridge deliberately does not shadow `bash` or `sh`, because that breaks
 scripts using `#!/usr/bin/env bash`.
 
+If `ws-claude <project>` reports that the AI tool bridge could not enter the
+project box, repair the shared AI box:
+
+```bash
+ws-ai-setup
+distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
+```
+
+Then retry:
+
+```bash
+ws-claude TerraKit
+```
+
 If a bridged command hangs, rerun it with bridge debugging enabled:
 
 ```bash

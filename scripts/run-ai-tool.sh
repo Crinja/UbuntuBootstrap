@@ -602,11 +602,15 @@ case "$tool" in
 
       if [ -n "$bridge_env" ] && [ -f "$bridge_env" ]; then
         . "$bridge_env"
-        if ! ws-project-exec true >/dev/null 2>&1; then
+        bridge_check_output="$(ws-project-exec true 2>&1)" || {
           printf "ERROR: AI tool bridge could not enter %s from ai-code.\n" "${WS_PROJECT_BOX_NAME:-the project box}" >&2
-          printf "Try: ws-ai-shell <project>, then run: ws-project-exec true\n" >&2
+          if [ -n "$bridge_check_output" ]; then
+            printf "%s\n" "$bridge_check_output" >&2
+          fi
+          printf "Try: ws-ai-setup, then rerun this command.\n" >&2
+          printf "For diagnostics: distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'\n" >&2
           exit 1
-        fi
+        }
       fi
 
       cd "$project_path" || exit 1

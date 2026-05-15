@@ -17,6 +17,7 @@ sudo apt-get update
 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
   ca-certificates \
   curl \
+  distrobox \
   fd-find \
   git \
   git-lfs \
@@ -75,6 +76,13 @@ if command -v codex >/dev/null 2>&1; then
   codex --version || true
 fi
 
+if command -v distrobox-host-exec >/dev/null 2>&1; then
+  # Prime host-spawn support so ai-code can ask the host to enter project boxes.
+  # This enables ws-claude/ws-codex to keep the AI tool in ai-code while running
+  # project commands in project-<name> Distroboxes.
+  distrobox-host-exec --yes true || true
+fi
+
 cat <<'EOF'
 
 ai-code is ready.
@@ -87,6 +95,7 @@ Common host-side commands:
 Inside ai-code:
   /work/projects contains host ~/Projects
   /work/scratch contains host ~/Scratch
+  distrobox-host-exec is used by ws-claude/ws-codex to run project commands
 
 Keep API keys, auth tokens, and local agent settings out of Git.
 EOF

@@ -89,6 +89,8 @@ WS_AI_BRIDGE_TOOLS="cargo rustc just taplo" ws-claude TerraKit
 - Node LTS through nvm.
 - `@anthropic-ai/claude-code`.
 - `@openai/codex`.
+- `distrobox-host-exec` support through the `distrobox` package, so AI commands
+  can enter project Distroboxes through the host.
 - Git, Git LFS, SSH, ripgrep, fd, jq, tree, shellcheck, and basic CLI helpers.
 
 These are installed inside the `ai-code` Distrobox, not on the host.

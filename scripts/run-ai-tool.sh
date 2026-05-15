@@ -587,7 +587,11 @@ case "$tool" in
     ' _ "$bridge_env_path" "$ai_project_path"
     ;;
   claude|codex)
-    exec distrobox-enter --name ai-code -- bash -lc "${source_nvm}"'
+    exec distrobox-enter --name ai-code -- env \
+      WS_AI_BRIDGE_FILE="$bridge_env_path" \
+      WS_AI_PROJECT_PATH="$ai_project_path" \
+      WS_AI_TOOL_NAME="$tool" \
+      bash -lc "${source_nvm}"'
       unset BASH_ENV ENV WS_AI_TOOL_BRIDGE WS_AI_BRIDGE_ENV WS_PROJECT_BOX_NAME WS_AI_PROJECT_ROOT WS_PROJECT_BOX_ROOT
       export SHELL=/bin/bash
       clean_path=""
@@ -607,10 +611,19 @@ case "$tool" in
       PATH="$clean_path"
       export PATH
 
-      bridge_env="$1"
-      project_path="$2"
-      tool_name="$3"
-      shift 3
+      bridge_env="${WS_AI_BRIDGE_FILE:-}"
+      project_path="${WS_AI_PROJECT_PATH:-}"
+      tool_name="${WS_AI_TOOL_NAME:-}"
+
+      if [ -z "$tool_name" ]; then
+        printf "ERROR: AI tool name was not passed into ai-code. Wrapper bug; update this repository and retry.\n" >&2
+        exit 2
+      fi
+
+      if [ -z "$project_path" ]; then
+        printf "ERROR: Project path was not passed into ai-code. Wrapper bug; update this repository and retry.\n" >&2
+        exit 2
+      fi
 
       if ! tool_path="$(command -v "$tool_name")"; then
         printf "ERROR: %s was not found inside ai-code. Run: ws-ai-setup\n" "$tool_name" >&2
@@ -647,6 +660,6 @@ case "$tool" in
           exec "$tool_path" "$@"
           ;;
       esac
-    ' _ "$bridge_env_path" "$ai_project_path" "$tool" "$@"
+    ' ai-tool "$@"
     ;;
 esac

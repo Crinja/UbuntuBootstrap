@@ -1,36 +1,29 @@
 # Host Discipline
 
-The host is the management OS. Keep it small, boring, and recoverable.
+Host allowed:
 
-## Belongs on the Host
+- Drivers and hardware support.
+- GNOME/desktop integration.
+- Backup/snapshot tools.
+- Flatpak support.
+- Podman and Distrobox.
+- VM tools.
+- Basic CLI tools.
+- A small terminal editor.
 
-- Drivers and hardware integration.
-- Desktop tools and GNOME integration.
-- File tools and archive tools.
-- Backup and snapshot tools such as Timeshift.
-- Flatpak and Flatseal.
-- Podman.
-- Distrobox.
-- VM tools such as GNOME Boxes and virt-manager.
-- A terminal and a small editor such as `neovim` if desired.
-- Diagnostics such as `htop`, `btop`, `tree`, `jq`, `ripgrep`, and `shellcheck`.
+Host not allowed:
 
-## Does Not Belong on the Host
-
-- Rust toolchains.
-- Node/npm.
-- .NET SDKs.
+- Rust, Node, .NET, Java SDKs.
+- Databases and queues.
 - VS Code.
-- Claude Code, Codex CLI, or other AI coding agents.
-- JDKs and language IDE bundles.
-- Databases such as MongoDB, Postgres, MySQL, or Redis.
-- Random language package managers.
+- Docker Engine by default.
+- Claude Code or Codex CLI on the host.
 - Global pip/npm/cargo tools.
 - Project-specific CLIs.
 - Experimental libraries.
-- Uni-specific junk that belongs to one course or assignment.
 
-## Rule of Thumb
+If deleting a project requires host package cleanup, I put something in the
+wrong layer.
 
-If uninstalling a project would require cleaning host packages, the project was
-probably installed at the wrong layer.
+Docker is only installed inside a project Distrobox when I pass
+`--with-docker`.

@@ -11,14 +11,12 @@ usage() {
   cat <<'EOF'
 Usage:
   ./scripts/open-project-code.sh <project-name> [code-args...]
-  ./scripts/open-project-code.sh --base [code-args...]
   ./scripts/open-project-code.sh --box <distrobox-name> [code-args...]
 
 Examples:
-  ws-code Terrakit
-  ws-code Terrakit .
-  ws-code --base
-  ws-code --box experimental ~/Scratch
+  ws-code ExampleProject
+  ws-code ExampleProject .
+  ws-code --box some-manual-box ~/Scratch
 
 VS Code must be installed inside the selected Distrobox.
 EOF
@@ -38,11 +36,6 @@ box_name=""
 default_target=""
 
 case "$1" in
-  --base)
-    box_name="dev-base"
-    default_target="${HOME}"
-    shift
-    ;;
   --box)
     [[ $# -ge 2 ]] || die "--box requires a Distrobox name."
     box_name="$2"

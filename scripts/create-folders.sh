@@ -12,7 +12,7 @@ usage() {
 Usage:
   ./scripts/create-folders.sh [--dry-run]
 
-Creates the standard workstation folders under your home directory.
+Creates the standard workstation folders under the current user's home directory.
 EOF
 }
 
@@ -40,8 +40,6 @@ folders=(
   "${HOME}/Boxes/projects"
   "${HOME}/VMs"
   "${HOME}/Scratch"
-  "${HOME}/Games"
-  "${HOME}/Games/SteamLibrary"
   "${HOME}/Downloads/Quarantine"
 )
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configure Flathub and install desktop applications from config/flatpaks.txt.
+# Configure Flathub and install optional desktop applications from config/flatpaks.txt.
 
 set -euo pipefail
 
@@ -13,6 +13,7 @@ Usage:
   ./scripts/install-flatpaks.sh [--dry-run]
 
 Ensures Flathub exists and installs configured Flatpak applications.
+The default config is empty, so this normally installs no apps.
 EOF
 }
 
@@ -32,7 +33,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-section "Flatpak install"
+section "Flatpak setup"
 if ! command_exists flatpak; then
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
     warn "flatpak is not installed, but continuing because dry-run mode is enabled."
@@ -47,7 +48,7 @@ run flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.
 mapfile -t flatpaks < <(read_config_lines "${REPO_ROOT}/config/flatpaks.txt")
 
 if [[ "${#flatpaks[@]}" -eq 0 ]]; then
-  warn "No Flatpak applications configured."
+  log "No Flatpak applications configured; skipping app install."
   exit 0
 fi
 
@@ -66,4 +67,4 @@ for app_id in "${flatpaks[@]}"; do
   fi
 done
 
-log "Flatpak install complete. Some apps may appear after logging out and back in."
+log "Flatpak setup complete. Some apps may appear after logging out and back in."

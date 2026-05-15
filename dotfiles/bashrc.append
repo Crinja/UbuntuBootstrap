@@ -1,6 +1,6 @@
-# Linux workstation helper commands.
+# UbuntuBootstrap helper commands.
 # Source this file from ~/.bashrc:
-#   source /path/to/linux-workstation/dotfiles/bashrc.append
+#   source /path/to/UbuntuBootstrap/dotfiles/bashrc.append
 
 _ws_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 

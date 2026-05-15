@@ -1,275 +1,132 @@
 # Troubleshooting
 
-## Flathub Not Added
-
-Run:
+## PATH
 
 ```bash
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak remotes
+./scripts/install-shell-integration.sh
+source ~/.bashrc
+command -v ws-new
 ```
 
-Then rerun:
+## Flatpak
+
+The default app list is empty. To install apps, add IDs to
+`config/flatpaks.txt`, then run:
 
 ```bash
 ./scripts/install-flatpaks.sh
 ```
 
-## Flatpak Apps Do Not Appear
-
-Log out and back in, or reboot. Desktop launchers sometimes appear only after
-the session refreshes.
-
-## Podman Rootless Issues
-
-Check:
+Check Flathub:
 
 ```bash
-podman info
+flatpak remotes
 ```
 
-If rootless storage or user namespace errors appear, reboot after installing
-Podman. On unusual systems, verify `/etc/subuid` and `/etc/subgid` contain an
-entry for your user.
-
-## Distrobox Creation Failures
-
-Check:
+## Podman / Distrobox
 
 ```bash
 podman info
 distrobox-list
-```
-
-Then try creating a small test box:
-
-```bash
 distrobox-create --name test-box --image ubuntu:24.04 --yes
 ```
 
-If image pulls fail, check network access and registry availability.
+If rootless Podman behaves strangely after install, reboot once.
 
-## Project Environment Creation Failures
+## Project Boxes
 
-Run:
-
-```bash
-ws-list
-distrobox-list
-```
-
-If the Distrobox exists but template setup failed, rerun:
+If template setup failed, rerun the same command:
 
 ```bash
-ws-new <template> <project-name>
+ws-new rust ExampleProject
 ```
 
-Templates are designed to be idempotent.
+Templates should be idempotent.
 
-## PATH Does Not Find ws-new or ws-enter
+## VS Code
 
-Run the shell integration script:
+Check Code inside the selected box:
 
 ```bash
-./scripts/install-shell-integration.sh
-source ~/.bashrc
+distrobox-enter --name project-exampleproject -- command -v code
 ```
 
-Confirm:
+For a manually created editor box:
 
 ```bash
-command -v ws-new
-command -v ws-enter
+ws-code --box <box-name>
 ```
 
-## VS Code Does Not Launch From ws-code
+## Docker In Project Boxes
 
-Confirm the selected box exists:
+Docker is not installed in every project box. Add it only when needed:
 
 ```bash
-distrobox-list
+ws-new node WebApp --with-devcontainer --with-docker
 ```
 
-Confirm VS Code is installed inside that box:
+Check it inside the project box:
 
 ```bash
-distrobox-enter --name project-terrakit -- command -v code
+ws-enter WebApp
+docker --version
+docker compose version
 ```
 
-For the base editor box, configure it first:
+If Docker was installed but the daemon is not reachable, exit and re-enter the
+box. If it still fails:
 
 ```bash
-distrobox-enter --name dev-base -- bash -s < boxes/dev-base.sh
-ws-code --base
+sudo service docker start
 ```
 
-If GUI windows do not appear, test another simple GUI app from inside the box and
-check Wayland/X11 integration for your Distrobox version and desktop session.
+Nested Docker in Distrobox can depend on host runtime details. Use a VM if a
+repo needs unusual daemon, kernel, networking, or privileged behavior.
 
-## Claude Code or Codex Is Missing
+## AI Tools
 
-Repair or update the shared AI tools box:
+Repair the AI tool boxes:
 
 ```bash
 ws-ai-setup
+distrobox-enter --name claude-code -- bash -lc 'command -v claude'
+distrobox-enter --name codex -- bash -lc 'command -v codex'
 ```
 
-Then check inside the box:
+Check the project shell directly:
 
 ```bash
-distrobox-enter --name ai-code
-command -v claude
-command -v codex
-```
-
-If those commands are missing but Node was installed with nvm, rerun:
-
-```bash
-ws-ai-setup
-```
-
-If nvm reports that `NVM_DIR` points at a directory that does not exist, update
-the repo and rerun `ws-ai-setup`. The setup script creates `~/.nvm` inside the
-custom `ai-code` home before running the installer.
-
-Run agents against a project from the host:
-
-```bash
-ws-claude TerraKit
-ws-codex TerraKit
-```
-
-Bootstrap runs `ws-ai-setup` automatically, but the command is safe to rerun.
-Claude Code and Codex CLI require network access for install and authentication.
-Do not install them on the host.
-
-## AI Agent Cannot Find Project SDK Tools
-
-`ws-claude <project>` and `ws-codex <project>` expose common SDK commands from
-the matching project Distrobox into `ai-code`.
-
-Confirm the project Distrobox exists:
-
-```bash
-distrobox-list
-```
-
-Then open a bridged shell:
-
-```bash
-ws-ai-shell TerraKit
+ws-enter ExampleProject
 pwd
-command -v cargo
 cargo --version
-```
-
-`ws-ai-shell <project>` opens an interactive shell directly in the project
-Distrobox. `pwd` should be the project mount inside that box, such as
-`/work/terrakit`, and `cargo --version` should run directly there.
-
-If you launch `ws-claude` from inside a project Distrobox, the wrapper should
-automatically re-enter the host before launching `ai-code`. Do not set
-`WS_HOST_REEXEC` manually; it is only an internal loop guard. If host re-entry
-does not happen, check that the project box can see `distrobox-host-exec`:
-
-```bash
 command -v distrobox-host-exec
 ```
 
-For Claude/Codex launches, the wrapper runs the AI tool from `ai-code` but
-exports `SHELL` to a generated project-command shell. Shell commands spawned via
-`$SHELL -c ...` run inside the project Distrobox. Common direct tool executions
-such as `cargo`, `node`, `dotnet`, and `python3` are still shimmed as a fallback.
-The bridge deliberately does not shadow `bash` or `sh`, because that breaks
-scripts using `#!/usr/bin/env bash`.
-
-If `ws-claude <project>` reports that the AI tool bridge could not enter the
-project box, first check whether Distrobox host integration is visible inside
-`ai-code`:
+Check an AI launcher:
 
 ```bash
-distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
+ws-claude ExampleProject --help
+ws-codex ExampleProject --help
 ```
 
-Do not install the Ubuntu `distrobox` apt package inside the `ai-code`
-Distrobox. Distrobox may already inject host-managed files such as
-`/usr/bin/distrobox-export`, and dpkg can fail with `Invalid cross-device link`
-when trying to replace them.
-
-If that happened, repair the package state inside `ai-code`:
+Check host integration from the tool boxes:
 
 ```bash
-distrobox-enter --name ai-code -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
+distrobox-enter --name claude-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
+distrobox-enter --name codex -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
 ```
 
-Then update this repository and rerun:
+Do not install the Ubuntu `distrobox` package inside the AI tool boxes. It can
+conflict with Distrobox-managed files injected from the host.
+
+If I accidentally tried that and dpkg is wedged:
 
 ```bash
-ws-ai-setup
+distrobox-enter --name claude-code -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
+distrobox-enter --name codex -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
 ```
 
-Then retry:
+## VM Instead
 
-```bash
-ws-claude TerraKit
-```
-
-If a bridged command hangs, rerun it with bridge debugging enabled:
-
-```bash
-WS_AI_BRIDGE_DEBUG=1 cargo --version
-WS_AI_BRIDGE_DEBUG=1 ws-project-exec cargo --version
-```
-
-Tool commands use `distrobox-enter --no-tty` through `distrobox-host-exec`,
-because Distrobox recommends disabling TTY allocation for script-style command
-execution.
-
-If repo-local scripts bypass `PATH`, run them through the project box explicitly:
-
-```bash
-ws-project-exec ./gradlew test
-ws-project-exec ./scripts/test.sh
-```
-
-If the agent needs an apt package for this project, install it inside the
-project Distrobox:
-
-```bash
-ws-project-apt-install just
-ws-project-apt-install libssl-dev pkg-config
-```
-
-The bridge depends on `distrobox-host-exec` being available inside `ai-code`.
-If it is missing, update Distrobox and recreate or update the `ai-code` box.
-
-## NVIDIA and GPU Caveats
-
-GPU support depends on the host driver stack. Flatpak, Distrobox, Steam, and
-VMs each have their own integration details. If GPU workloads fail, first
-confirm the host driver works outside containers.
-
-## Steam and Gaming Caveats
-
-Steam Flatpak is a good default for host cleanliness and is included in
-`config/flatpaks.txt`.
-
-There is no default gaming Distrobox. Create one manually only when Flatpak
-Steam is not enough for a specific launcher, mod manager, or experiment.
-
-Gaming inside Distrobox can work, but compatibility varies. Anti-cheat, Proton,
-controller support, and GPU integration may behave differently than Steam
-Flatpak or a normal host install.
-
-## When To Use a VM Instead
-
-Use a VM for:
-
-- Genuinely untrusted software.
-- Windows-only tools.
-- Kernel modules or low-level system changes.
-- Malware-adjacent analysis.
-- Experiments that might damage a user session.
-
-Distrobox is for contamination control and workflow separation, not strong
-malware isolation.
+Use a VM for untrusted software, Windows-only tools, kernel modules, or anything
+that should not share the user session.

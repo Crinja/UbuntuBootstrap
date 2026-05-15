@@ -37,8 +37,10 @@ section "Bash shell integration"
 
 bashrc="${HOME}/.bashrc"
 source_file="${REPO_ROOT}/dotfiles/bashrc.append"
-marker_start="# >>> linux-workstation ws commands >>>"
-marker_end="# <<< linux-workstation ws commands <<<"
+marker_start="# >>> UbuntuBootstrap ws commands >>>"
+marker_end="# <<< UbuntuBootstrap ws commands <<<"
+legacy_marker_start="# >>> linux-workstation ws commands >>>"
+legacy_marker_end="# <<< linux-workstation ws commands <<<"
 quoted_source_file="$(printf '%q' "$source_file")"
 snippet="$(cat <<EOF
 ${marker_start}
@@ -58,15 +60,20 @@ fi
 
 touch "$bashrc"
 
-if grep -Fxq "$marker_start" "$bashrc"; then
+if grep -Fxq "$marker_start" "$bashrc" || grep -Fxq "$legacy_marker_start" "$bashrc"; then
   tmp_file="$(mktemp)"
-  awk -v start="$marker_start" -v end="$marker_end" -v snippet="$snippet" '
-    $0 == start {
+  awk \
+    -v start="$marker_start" \
+    -v end="$marker_end" \
+    -v legacy_start="$legacy_marker_start" \
+    -v legacy_end="$legacy_marker_end" \
+    -v snippet="$snippet" '
+    $0 == start || $0 == legacy_start {
       print snippet
       in_block = 1
       next
     }
-    $0 == end {
+    $0 == end || $0 == legacy_end {
       in_block = 0
       next
     }
@@ -75,14 +82,14 @@ if grep -Fxq "$marker_start" "$bashrc"; then
     }
   ' "$bashrc" >"$tmp_file"
   mv "$tmp_file" "$bashrc"
-  log "Updated existing workstation PATH block in ${bashrc}."
+  log "Updated existing PATH block in ${bashrc}."
 elif grep -Fq "$source_file" "$bashrc"; then
   log "${bashrc} already sources ${source_file}."
 else
   {
     printf '\n%s\n' "$snippet"
   } >>"$bashrc"
-  log "Added workstation PATH block to ${bashrc}."
+  log "Added PATH block to ${bashrc}."
 fi
 
 log "Open a new terminal or run: source ~/.bashrc"

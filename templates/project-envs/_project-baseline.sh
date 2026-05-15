@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared base development layer for project Distroboxes.
+# Shared project baseline for project Distroboxes.
 #
 # This installs editor and workflow basics only. It intentionally does not
 # install language SDKs, databases, or project-specific CLIs.
@@ -10,7 +10,7 @@ project_mount="${1:-${HOME}/project}"
 project_name="${2:-$(basename "$project_mount")}"
 : "${WS_INSTALL_VSCODE:=1}"
 
-install_base_dev_packages() {
+install_project_baseline_packages() {
   sudo apt-get update
   sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
@@ -71,10 +71,10 @@ EOF
   code --version | head -n 1
 }
 
-echo "Configuring base development layer for ${project_name}."
+echo "Configuring project baseline for ${project_name}."
 echo "Project mount: ${project_mount}"
 
-install_base_dev_packages
+install_project_baseline_packages
 
 if [[ "$WS_INSTALL_VSCODE" == "1" ]]; then
   install_vscode
@@ -82,4 +82,4 @@ else
   echo "Skipping VS Code install because WS_INSTALL_VSCODE=${WS_INSTALL_VSCODE}."
 fi
 
-echo "Base dev tooling is ready. No language SDKs were installed by this layer."
+echo "Project baseline tooling is ready. No language SDKs were installed by this layer."

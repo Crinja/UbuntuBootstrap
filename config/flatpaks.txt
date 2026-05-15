@@ -1,11 +1,9 @@
-# Desktop applications. Prefer Flatpak for GUI apps so the host apt layer stays
-# focused on OS management.
-
-com.github.tchx84.Flatseal
-com.discordapp.Discord
-com.spotify.Client
-org.videolan.VLC
-md.obsidian.Obsidian
-org.gimp.GIMP
-org.libreoffice.LibreOffice
-com.valvesoftware.Steam
+# Optional Flatpak applications.
+#
+# Keep this empty by default. The Flatpak installer still configures Flathub,
+# but no desktop applications are installed unless I uncomment or add app IDs.
+#
+# Examples:
+# com.github.tchx84.Flatseal
+# md.obsidian.Obsidian
+# org.videolan.VLC

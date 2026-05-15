@@ -1,8 +1,10 @@
 * text=auto
 
+.gitattributes text eol=lf
 *.sh text eol=lf
 bootstrap.sh text eol=lf
 bin/ws-* text eol=lf
+dotfiles/bashrc.append text eol=lf
 config/*.conf text eol=lf
 config/*.txt text eol=lf
 *.md text eol=lf

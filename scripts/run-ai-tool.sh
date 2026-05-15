@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Run an AI coding CLI from ai-code while exposing project Distrobox tooling.
+# Run an AI coding CLI from a project Distrobox shell.
+#
+# The AI CLI and auth state live in a dedicated tool box. The working shell
+# lives in the project box, so project commands naturally use that project's
+# SDKs, PATH, services, and custom home.
 
 set -euo pipefail
 
@@ -10,18 +14,16 @@ source "${SCRIPT_DIR}/lib.sh"
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/run-ai-tool.sh <claude|codex|shell> [options] <project-name> [tool-args...]
-  ./scripts/run-ai-tool.sh <claude|codex|shell> [options] --path <host-project-path> [tool-args...]
+  ./scripts/run-ai-tool.sh <claude|codex> [options] <project-name> [tool-args...]
+  ./scripts/run-ai-tool.sh <claude|codex> [options] --path <host-project-path> [tool-args...]
 
 Options:
-  --no-tool-bridge  Do not expose project Distrobox SDK tools to ai-code.
   --dry-run, -n     Print what would happen without running it.
 
 Examples:
-  ws-claude TerraKit
-  ws-codex TerraKit
-  ws-ai-shell TerraKit
-  ws-claude --no-tool-bridge TerraKit
+  ws-claude ExampleProject
+  ws-codex ExampleProject
+  ws-claude ExampleProject --help
 EOF
 }
 
@@ -35,22 +37,21 @@ fi
 
 tool="$1"
 shift
-tool_bridge=1
 
 case "$tool" in
-  claude|codex|shell)
+  claude)
+    ai_box_name="claude-code"
+    ;;
+  codex)
+    ai_box_name="codex"
     ;;
   *)
-    die "Unknown AI tool '$tool'. Expected claude, codex, or shell."
+    die "Unknown AI tool '$tool'. Expected claude or codex."
     ;;
 esac
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --no-tool-bridge)
-      tool_bridge=0
-      shift
-      ;;
     --dry-run|-n)
       export WS_DRY_RUN=1
       shift
@@ -94,247 +95,122 @@ case "$resolved_project_path" in
     ai_project_path="/work/projects/${relative_project_path}"
     ;;
   *)
-    die "Project path must be under ${HOME}/Projects so ai-code can see it."
+    die "Project path must be under ${HOME}/Projects so the AI tool boxes can see it."
     ;;
 esac
 
 normalized_project="$(normalize_project_name "$project_name")"
 project_box_name="project-${normalized_project}"
 project_box_path="/work/${normalized_project}"
-bridge_tools="${WS_AI_BRIDGE_TOOLS:-cargo rustc rustup node npm npx pnpm yarn bun deno python python3 pip pip3 uv dotnet java javac jar mvn gradle gradlew gcc g++ cc c++ clang clang++ cmake make ninja pkg-config php composer go docker podman docker-compose}"
-bridge_env_path=""
+launcher_bin=""
 
 if [[ "${WS_DRY_RUN}" == "1" ]]; then
-  if [[ "$tool_bridge" -eq 1 ]]; then
-    if [[ "$tool" == "shell" ]]; then
-      log "Would enter ${project_box_name} directly at ${project_box_path}."
-    else
-      log "Would expose tools from ${project_box_name}:${project_box_path} inside ai-code."
-    fi
-  fi
-
-  if [[ "$tool" == "shell" ]]; then
-    if [[ "$tool_bridge" -eq 1 ]]; then
-      log "Would open an interactive project shell."
-    else
-      log "Would enter ai-code at ${ai_project_path}."
-    fi
-  else
-    log "Would run '${tool}' in ai-code at ${ai_project_path}."
-  fi
+  log "Would prepare '${tool}' launcher inside ${project_box_name}."
+  log "Would enter ${project_box_name} at ${project_box_path}."
+  log "Would run '${tool}' from ${ai_box_name} with project shell routing enabled."
   exit 0
 fi
 
 command_exists distrobox-enter || die "distrobox-enter is not installed."
 
-if ! distrobox_exists ai-code; then
-  die "Distrobox 'ai-code' does not exist. Run ./bootstrap.sh first."
+if ! distrobox_exists "$project_box_name"; then
+  die "Project Distrobox '${project_box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
 fi
 
-source_nvm='
+if ! distrobox_exists "$ai_box_name"; then
+  die "Distrobox '${ai_box_name}' does not exist. Run ./bootstrap.sh first."
+fi
+
+prepare_project_launcher() {
+  local launcher_output
+
+  launcher_output="$(
+    distrobox-enter --name "$project_box_name" -- bash -s -- \
+      "$tool" \
+      "$ai_box_name" \
+      "$ai_project_path" \
+      "$project_box_name" \
+      "$project_box_path" <<'PROJECT_LAUNCHER_SETUP'
+set -euo pipefail
+
+tool_name="$1"
+ai_box_name="$2"
+ai_project_root="$3"
+project_box_name="$4"
+project_box_root="$5"
+
+launcher_root="${HOME}/.local/share/ws-ai-launchers/${tool_name}/${project_box_name}"
+launcher_bin="${launcher_root}/bin"
+launcher="${launcher_bin}/${tool_name}"
+
+mkdir -p "$launcher_bin"
+
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'set -euo pipefail\n\n'
+  printf 'WS_AI_BOX_NAME=%q\n' "$ai_box_name"
+  printf 'WS_AI_TOOL_NAME=%q\n' "$tool_name"
+  printf 'WS_AI_PROJECT_ROOT=%q\n' "$ai_project_root"
+  printf 'WS_PROJECT_BOX_NAME=%q\n' "$project_box_name"
+  printf 'WS_PROJECT_BOX_ROOT=%q\n\n' "$project_box_root"
+  cat <<'LAUNCHER_BODY'
+if ! command -v distrobox-host-exec >/dev/null 2>&1; then
+  printf 'ERROR: distrobox-host-exec is not available inside the project box; cannot launch %s from %s.\n' "$WS_AI_TOOL_NAME" "$WS_AI_BOX_NAME" >&2
+  exit 127
+fi
+
+current_dir="$(pwd)"
+
+case "$current_dir" in
+  "$WS_PROJECT_BOX_ROOT")
+    ai_dir="$WS_AI_PROJECT_ROOT"
+    ;;
+  "$WS_PROJECT_BOX_ROOT"/*)
+    relative_dir="${current_dir#"$WS_PROJECT_BOX_ROOT"/}"
+    ai_dir="${WS_AI_PROJECT_ROOT}/${relative_dir}"
+    ;;
+  *)
+    ai_dir="$WS_AI_PROJECT_ROOT"
+    ;;
+esac
+
+exec distrobox-host-exec distrobox-enter --name "$WS_AI_BOX_NAME" -- env \
+  -u BASH_ENV \
+  -u ENV \
+  WS_AI_TOOL_NAME="$WS_AI_TOOL_NAME" \
+  WS_AI_START_DIR="$ai_dir" \
+  WS_AI_PROJECT_ROOT="$WS_AI_PROJECT_ROOT" \
+  WS_PROJECT_BOX_NAME="$WS_PROJECT_BOX_NAME" \
+  WS_PROJECT_BOX_ROOT="$WS_PROJECT_BOX_ROOT" \
+  bash -s -- "$@" <<'AI_RUNNER'
+set -euo pipefail
+
+tool_name="${WS_AI_TOOL_NAME:?}"
+start_dir="${WS_AI_START_DIR:?}"
+ai_project_root="${WS_AI_PROJECT_ROOT:?}"
+project_box_name="${WS_PROJECT_BOX_NAME:?}"
+project_box_root="${WS_PROJECT_BOX_ROOT:?}"
+
 if [ -s "${HOME}/.nvm/nvm.sh" ]; then
   . "${HOME}/.nvm/nvm.sh"
   nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
 fi
-'
 
-prepare_tool_bridge() {
-  if ! distrobox_exists "$project_box_name"; then
-    die "Project Distrobox '${project_box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
-  fi
-
-  local bridge_output
-
-  bridge_output="$(
-    distrobox-enter --name ai-code -- bash -s -- \
-      "$project_box_name" \
-      "$ai_project_path" \
-      "$project_box_path" \
-      "$bridge_tools" <<'EOF'
-set -euo pipefail
-
-project_box_name="$1"
-ai_project_path="$2"
-project_box_path="$3"
-bridge_tools="$4"
-
-bridge_root="${HOME}/.local/share/ws-ai-tool-bridge/${project_box_name}"
-bridge_bin="${bridge_root}/bin"
-bridge_env="${bridge_root}/env"
-shim="${bridge_bin}/.ws-project-tool"
-
-mkdir -p "$bridge_bin"
-
-cat >"$shim" <<'SHIM'
-#!/usr/bin/env bash
-set -euo pipefail
-
-command_name="$(basename "$0")"
-
-if ! command -v distrobox-host-exec >/dev/null 2>&1; then
-  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot bridge %s into the project box.\n' "$command_name" >&2
+if ! tool_path="$(command -v "$tool_name")"; then
+  printf 'ERROR: %s was not found inside its AI tool box. Run: ws-ai-setup\n' "$tool_name" >&2
   exit 127
 fi
 
-: "${WS_PROJECT_BOX_NAME:?}"
-: "${WS_AI_PROJECT_ROOT:?}"
-: "${WS_PROJECT_BOX_ROOT:?}"
+bridge_root="${HOME}/.local/share/ws-ai-project-shells/${project_box_name}"
+bridge_shell="${bridge_root}/project-shell"
+mkdir -p "$bridge_root"
 
-current_dir="$(pwd)"
-
-case "$current_dir" in
-  "$WS_AI_PROJECT_ROOT")
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-  "$WS_AI_PROJECT_ROOT"/*)
-    relative_dir="${current_dir#"$WS_AI_PROJECT_ROOT"/}"
-    project_dir="${WS_PROJECT_BOX_ROOT}/${relative_dir}"
-    ;;
-  *)
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-esac
-
-if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
-  printf 'bridge: %s -> %s:%s\n' "$command_name" "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
-fi
-
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
-  bash -lc '
-    unset BASH_ENV ENV
-    if [ -f "${HOME}/.cargo/env" ]; then
-      . "${HOME}/.cargo/env"
-    fi
-    export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
-    if [ -s "${NVM_DIR}/nvm.sh" ]; then
-      . "${NVM_DIR}/nvm.sh"
-      nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
-    fi
-    if [ -d "${HOME}/.local/bin" ]; then
-      PATH="${HOME}/.local/bin:${PATH}"
-      export PATH
-    fi
-    cd "$1" || exit 1
-    shift
-    exec "$@"
-  ' _ "$project_dir" "$command_name" "$@"
-SHIM
-
-cat >"${bridge_bin}/ws-project-exec" <<'PROJECT_EXEC'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [[ "$#" -lt 1 ]]; then
-  printf 'Usage: ws-project-exec <command> [args...]\n' >&2
-  exit 2
-fi
-
-if ! command -v distrobox-host-exec >/dev/null 2>&1; then
-  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot run command in the project box.\n' >&2
-  exit 127
-fi
-
-: "${WS_PROJECT_BOX_NAME:?}"
-: "${WS_AI_PROJECT_ROOT:?}"
-: "${WS_PROJECT_BOX_ROOT:?}"
-
-current_dir="$(pwd)"
-
-case "$current_dir" in
-  "$WS_AI_PROJECT_ROOT")
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-  "$WS_AI_PROJECT_ROOT"/*)
-    relative_dir="${current_dir#"$WS_AI_PROJECT_ROOT"/}"
-    project_dir="${WS_PROJECT_BOX_ROOT}/${relative_dir}"
-    ;;
-  *)
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-esac
-
-if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
-  printf 'bridge: exec -> %s:%s ::' "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
-  printf ' %q' "$@" >&2
-  printf '\n' >&2
-fi
-
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
-  bash -lc '
-    unset BASH_ENV ENV
-    if [ -f "${HOME}/.cargo/env" ]; then
-      . "${HOME}/.cargo/env"
-    fi
-    export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
-    if [ -s "${NVM_DIR}/nvm.sh" ]; then
-      . "${NVM_DIR}/nvm.sh"
-      nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
-    fi
-    if [ -d "${HOME}/.local/bin" ]; then
-      PATH="${HOME}/.local/bin:${PATH}"
-      export PATH
-    fi
-    cd "$1" || exit 1
-    shift
-    exec "$@"
-  ' _ "$project_dir" "$@"
-PROJECT_EXEC
-
-cat >"${bridge_bin}/ws-project-shell" <<'PROJECT_SHELL'
+cat >"$bridge_shell" <<'PROJECT_SHELL_BRIDGE'
 #!/usr/bin/env bash
 set -euo pipefail
 
 if ! command -v distrobox-host-exec >/dev/null 2>&1; then
-  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot enter the project box.\n' >&2
-  exit 127
-fi
-
-: "${WS_PROJECT_BOX_NAME:?}"
-: "${WS_AI_PROJECT_ROOT:?}"
-: "${WS_PROJECT_BOX_ROOT:?}"
-
-current_dir="$(pwd)"
-
-case "$current_dir" in
-  "$WS_AI_PROJECT_ROOT")
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-  "$WS_AI_PROJECT_ROOT"/*)
-    relative_dir="${current_dir#"$WS_AI_PROJECT_ROOT"/}"
-    project_dir="${WS_PROJECT_BOX_ROOT}/${relative_dir}"
-    ;;
-  *)
-    project_dir="$WS_PROJECT_BOX_ROOT"
-    ;;
-esac
-
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
-  bash -lc '
-    unset BASH_ENV ENV
-    if [ -f "${HOME}/.cargo/env" ]; then
-      . "${HOME}/.cargo/env"
-    fi
-    export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
-    if [ -s "${NVM_DIR}/nvm.sh" ]; then
-      . "${NVM_DIR}/nvm.sh"
-      nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
-    fi
-    if [ -d "${HOME}/.local/bin" ]; then
-      PATH="${HOME}/.local/bin:${PATH}"
-      export PATH
-    fi
-    cd "$1" || exit 1
-    export SHELL=/bin/bash
-    exec /bin/bash -l
-  ' _ "$project_dir"
-PROJECT_SHELL
-
-cat >"${bridge_bin}/ws-project-command-shell" <<'PROJECT_COMMAND_SHELL'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if ! command -v distrobox-host-exec >/dev/null 2>&1; then
-  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot run commands in the project box.\n' >&2
+  printf 'ERROR: distrobox-host-exec is not available inside the AI tool box; cannot enter the project box.\n' >&2
   exit 127
 fi
 
@@ -384,7 +260,7 @@ run_command_string() {
   shift
 
   if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
-    printf 'bridge: shell -> %s:%s :: %s\n' "$WS_PROJECT_BOX_NAME" "$project_dir" "$command_string" >&2
+    printf 'project-shell: %s:%s :: %s\n' "$WS_PROJECT_BOX_NAME" "$project_dir" "$command_string" >&2
   fi
 
   exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
@@ -407,13 +283,13 @@ run_command_string() {
       command_string="$1"
       shift
       export SHELL=/bin/bash
-      exec /bin/bash -lc "$command_string" ws-project-command "$@"
+      exec /bin/bash -lc "$command_string" ws-ai-project-command "$@"
     ' _ "$project_dir" "$command_string" "$@"
 }
 
 run_direct() {
   if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
-    printf 'bridge: direct shell args -> %s:%s ::' "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
+    printf 'project-shell direct: %s:%s ::' "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
     printf ' %q' "$@" >&2
     printf '\n' >&2
   fi
@@ -483,183 +359,63 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 run_direct "$@"
-PROJECT_COMMAND_SHELL
+PROJECT_SHELL_BRIDGE
 
-cat >"${bridge_bin}/ws-project-apt-install" <<'PROJECT_APT_INSTALL'
-#!/usr/bin/env bash
-set -euo pipefail
+chmod +x "$bridge_shell"
 
-if [[ "$#" -lt 1 ]]; then
-  printf 'Usage: ws-project-apt-install <apt-package> [apt-package...]\n' >&2
-  exit 2
-fi
+export WS_PROJECT_BOX_NAME="$project_box_name"
+export WS_AI_PROJECT_ROOT="$ai_project_root"
+export WS_PROJECT_BOX_ROOT="$project_box_root"
+export SHELL="$bridge_shell"
+unset BASH_ENV ENV
 
-if ! command -v distrobox-host-exec >/dev/null 2>&1; then
-  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot install packages in the project box.\n' >&2
-  exit 127
-fi
+cd "$start_dir" || exit 1
 
-: "${WS_PROJECT_BOX_NAME:?}"
+node_path="$(command -v node || true)"
+first_line="$(head -n 1 "$tool_path" 2>/dev/null || true)"
 
-printf 'Installing apt package(s) inside %s only: %s\n' "$WS_PROJECT_BOX_NAME" "$*" >&2
-
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
-  bash -lc '
-    unset BASH_ENV ENV
-    sudo apt-get update
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
-  ' _ "$@"
-PROJECT_APT_INSTALL
-
-chmod +x "$shim"
-chmod +x \
-  "${bridge_bin}/ws-project-exec" \
-  "${bridge_bin}/ws-project-shell" \
-  "${bridge_bin}/ws-project-command-shell" \
-  "${bridge_bin}/ws-project-apt-install"
-
-for tool in $bridge_tools; do
-  ln -sfn ".ws-project-tool" "${bridge_bin}/${tool}"
-done
-
-rm -f "${bridge_bin}/bash" "${bridge_bin}/sh" "${bridge_bin}/ws-ai-bash" "${bridge_bin}/ws-ai-sh"
-
-{
-  printf 'export WS_PROJECT_BOX_NAME=%q\n' "$project_box_name"
-  printf 'export WS_AI_PROJECT_ROOT=%q\n' "$ai_project_path"
-  printf 'export WS_PROJECT_BOX_ROOT=%q\n' "$project_box_path"
-  printf 'export WS_AI_TOOL_BRIDGE=1\n'
-  printf 'export WS_AI_BRIDGE_ENV=%q\n' "$bridge_env"
-  printf 'export BASH_ENV=%q\n' "$bridge_env"
-  printf 'export SHELL=%q\n' "${bridge_bin}/ws-project-command-shell"
-  printf 'case ":${PATH}:" in *:%q:*) ;; *) export PATH=%q:${PATH} ;; esac\n' "$bridge_bin" "$bridge_bin"
-} >"$bridge_env"
-
-printf '__WS_BRIDGE_ENV__ %s\n' "$bridge_env"
-EOF
-  )"
-
-  bridge_env_path="$(
-    printf '%s\n' "$bridge_output" |
-      awk '/^__WS_BRIDGE_ENV__ / { sub(/^__WS_BRIDGE_ENV__ /, ""); value=$0 } END { if (value != "") print value }'
-  )"
-
-  [[ -n "$bridge_env_path" ]] || die "Could not prepare the AI tool bridge inside ai-code."
-}
-
-if [[ "$tool_bridge" -eq 1 && "$tool" != "shell" ]]; then
-  prepare_tool_bridge
-fi
-
-case "$tool" in
-  shell)
-    if [[ "$tool_bridge" -eq 1 ]]; then
-      if ! distrobox_exists "$project_box_name"; then
-        die "Project Distrobox '${project_box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
-      fi
-
-      exec distrobox-enter --name "$project_box_name" -- bash -lc '
-        unset BASH_ENV ENV
-        if [ -f "${HOME}/.cargo/env" ]; then
-          . "${HOME}/.cargo/env"
-        fi
-        export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
-        if [ -s "${NVM_DIR}/nvm.sh" ]; then
-          . "${NVM_DIR}/nvm.sh"
-          nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
-        fi
-        if [ -d "${HOME}/.local/bin" ]; then
-          PATH="${HOME}/.local/bin:${PATH}"
-          export PATH
-        fi
-        cd "$1" || exit 1
-        export SHELL=/bin/bash
-        exec /bin/bash -l
-      ' _ "$project_box_path"
+case "$first_line" in
+  *node*)
+    if [ -z "$node_path" ]; then
+      printf 'ERROR: %s needs Node inside its AI tool box, but node was not found. Run: ws-ai-setup\n' "$tool_name" >&2
+      exit 127
     fi
-
-    exec distrobox-enter --name ai-code -- bash -lc "${source_nvm}"'
-      if [ -n "$1" ] && [ -f "$1" ]; then
-        . "$1"
-      fi
-      cd "$2" || exit 1
-      exec "${SHELL:-bash}"
-    ' _ "$bridge_env_path" "$ai_project_path"
+    exec "$node_path" "$tool_path" "$@"
     ;;
-  claude|codex)
-    exec distrobox-enter --name ai-code -- env \
-      WS_AI_BRIDGE_FILE="$bridge_env_path" \
-      WS_AI_PROJECT_PATH="$ai_project_path" \
-      WS_AI_TOOL_NAME="$tool" \
-      bash -lc "${source_nvm}"'
-      unset BASH_ENV ENV WS_AI_TOOL_BRIDGE WS_AI_BRIDGE_ENV WS_PROJECT_BOX_NAME WS_AI_PROJECT_ROOT WS_PROJECT_BOX_ROOT
-      export SHELL=/bin/bash
-      clean_path=""
-      IFS=":" read -r -a path_parts <<< "$PATH"
-      for path_part in "${path_parts[@]}"; do
-        case "$path_part" in
-          */.local/share/ws-ai-tool-bridge/*)
-            continue
-            ;;
-        esac
-        if [ -z "$clean_path" ]; then
-          clean_path="$path_part"
-        else
-          clean_path="${clean_path}:$path_part"
-        fi
-      done
-      PATH="$clean_path"
-      export PATH
-
-      bridge_env="${WS_AI_BRIDGE_FILE:-}"
-      project_path="${WS_AI_PROJECT_PATH:-}"
-      tool_name="${WS_AI_TOOL_NAME:-}"
-
-      if [ -z "$tool_name" ]; then
-        printf "ERROR: AI tool name was not passed into ai-code. Wrapper bug; update this repository and retry.\n" >&2
-        exit 2
-      fi
-
-      if [ -z "$project_path" ]; then
-        printf "ERROR: Project path was not passed into ai-code. Wrapper bug; update this repository and retry.\n" >&2
-        exit 2
-      fi
-
-      if ! tool_path="$(command -v "$tool_name")"; then
-        printf "ERROR: %s was not found inside ai-code. Run: ws-ai-setup\n" "$tool_name" >&2
-        exit 127
-      fi
-
-      node_path="$(command -v node || true)"
-
-      if [ -n "$bridge_env" ] && [ -f "$bridge_env" ]; then
-        . "$bridge_env"
-        bridge_check_output="$(ws-project-exec true 2>&1)" || {
-          printf "ERROR: AI tool bridge could not enter %s from ai-code.\n" "${WS_PROJECT_BOX_NAME:-the project box}" >&2
-          if [ -n "$bridge_check_output" ]; then
-            printf "%s\n" "$bridge_check_output" >&2
-          fi
-          printf "Try: ws-ai-setup, then rerun this command.\n" >&2
-          printf "For diagnostics: distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'\n" >&2
-          exit 1
-        }
-      fi
-
-      cd "$project_path" || exit 1
-
-      first_line="$(head -n 1 "$tool_path" 2>/dev/null || true)"
-      case "$first_line" in
-        *node*)
-          if [ -z "$node_path" ]; then
-            printf "ERROR: %s needs Node inside ai-code, but node was not found. Run: ws-ai-setup\n" "$tool_name" >&2
-            exit 127
-          fi
-          exec "$node_path" "$tool_path" "$@"
-          ;;
-        *)
-          exec "$tool_path" "$@"
-          ;;
-      esac
-    ' ai-tool "$@"
+  *)
+    exec "$tool_path" "$@"
     ;;
 esac
+AI_RUNNER
+LAUNCHER_BODY
+} >"$launcher"
+
+chmod +x "$launcher"
+
+printf '__WS_AI_LAUNCHER_BIN__ %s\n' "$launcher_bin"
+PROJECT_LAUNCHER_SETUP
+  )"
+
+  launcher_bin="$(
+    printf '%s\n' "$launcher_output" |
+      awk '/^__WS_AI_LAUNCHER_BIN__ / { sub(/^__WS_AI_LAUNCHER_BIN__ /, ""); value=$0 } END { if (value != "") print value }'
+  )"
+
+  [[ -n "$launcher_bin" ]] || die "Could not prepare ${tool} launcher inside ${project_box_name}."
+}
+
+prepare_project_launcher
+
+exec distrobox-enter --name "$project_box_name" -- env \
+  WS_AI_LAUNCHER_BIN="$launcher_bin" \
+  bash -lc '
+    set -euo pipefail
+    project_dir="$1"
+    launcher_bin="$2"
+    tool_name="$3"
+    shift 3
+
+    cd "$project_dir" || exit 1
+    export PATH="${launcher_bin}:${PATH}"
+    exec "$tool_name" "$@"
+  ' _ "$project_box_path" "$launcher_bin" "$tool" "$@"

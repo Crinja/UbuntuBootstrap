@@ -1,168 +1,82 @@
 # Project Environments
 
-Each serious project gets its own environment. This avoids the slow drift toward
-a host full of global SDKs, package managers, databases, and one-off CLIs.
+Each serious project gets one Distrobox.
 
-## Naming
+Example:
 
-Project names are preserved for folders and normalized for Distrobox names:
-
-```text
-Terrakit               -> project-terrakit
-HackJack               -> project-hackjack
-CSIT314-TalentMatching -> project-csit314-talentmatching
+```bash
+ws-new rust ExampleProject
 ```
 
-Normalization lowercases the name and replaces unsupported characters with
-hyphens.
-
-## Folder Layout
-
-Source files:
+Creates:
 
 ```text
-~/Projects/<project-name>
+~/Projects/ExampleProject
+~/Boxes/projects/ExampleProject
+project-exampleproject
 ```
 
-Custom Distrobox home:
+Inside the box:
 
 ```text
-~/Boxes/projects/<project-name>
-```
-
-Inside the Distrobox, the project is mounted at:
-
-```text
-/work/<normalized-project-name>
+/work/exampleproject
 ~/project
 ```
 
-## Base Dev Layer
+Names are normalized for Distrobox:
 
-Every project template runs a shared base development layer first. It installs
-VS Code, Git/Git LFS, SSH, ripgrep, fd, jq, shellcheck, archive tools, and
-desktop integration helpers inside the project Distrobox.
-
-It does not install SDKs. Rust, C++, Java, Node, Python, C#, PHP, databases, and
-project CLIs are installed only by project-specific templates or by the project
-itself.
-
-AI coding agents live in the shared `ai-code` box, not in each project box:
-
-```bash
-ws-claude TerraKit
-ws-codex TerraKit
+```text
+ExampleProject -> project-exampleproject
+CSIT314-TalentMatching -> project-csit314-talentmatching
 ```
 
-Bootstrap configures `ai-code` automatically. It sees host projects at
-`/work/projects`, keeping agent auth outside the host without requiring
-Claude/Codex setup for every project.
-
-When you launch an agent for a project, the wrapper also exposes that project
-Distrobox's SDK tools to the `ai-code` session. That means `cargo`, `node`,
-`dotnet`, `python3`, and similar commands run in the project environment even
-though Claude/Codex itself runs in `ai-code`.
-
-Launch VS Code from the project box:
+Common flow:
 
 ```bash
-ws-code Terrakit
+ws-new rust ExampleProject
+ws-enter ExampleProject
+ws-code ExampleProject
 ```
 
-Skip VS Code for a lighter box:
+Templates install the shared editor/Git baseline first, then optional language
+tooling for that project only.
+
+VS Code is installed by default inside each project box:
 
 ```bash
-ws-new rust Terrakit --no-ide
+ws-new rust ExampleProject
 ```
 
-## Create a Rust Environment
+Skip it when I want a smaller environment:
 
 ```bash
-ws-new rust Terrakit
-ws-enter Terrakit
-ws-code Terrakit
+ws-new python HeadlessScript --no-ide
 ```
 
-The Rust template installs build tools and rustup inside `project-terrakit`.
-Rust is not installed on the host.
-
-## Create a Node Environment
+Docker is opt-in for repos that need devcontainers or Docker Compose:
 
 ```bash
-ws-new node CSIT314-TalentMatching
-ws-enter CSIT314-TalentMatching
+ws-new node WebApp --with-devcontainer --with-docker
 ```
 
-The Node template installs nvm and latest LTS Node inside that one project box.
-Node and npm are not installed on the host.
+That installs Docker/Compose tooling inside that project Distrobox only.
 
-`js` is also accepted:
+Available templates:
+
+- `rust`
+- `rust-nightly`
+- `cpp`
+- `csharp` / `dotnet`
+- `java`
+- `node` / `js`
+- `python`
+- `php`
+- `generic`
+
+Remove an environment:
 
 ```bash
-ws-new js FrontendExperiment
+ws-remove ExampleProject
 ```
 
-## Create a .NET Environment
-
-```bash
-ws-new dotnet HackJack --with-devcontainer
-ws-enter HackJack
-```
-
-The .NET template installs prerequisites and leaves SDK selection to the project.
-Pin SDKs with `global.json` and install the matching SDK inside the project box.
-
-`csharp`, `c#`, and `cs` are accepted aliases for the C# template.
-
-## Create C++ and Java Environments
-
-```bash
-ws-new cpp EngineExperiment
-ws-new java CourseworkTool
-```
-
-C++ and Java SDKs are installed in those project boxes only.
-
-## Nightly or Weird Toolchains
-
-Use a dedicated project box for unusual toolchains:
-
-```bash
-ws-new rust-nightly CompilerExperiment
-```
-
-Nightly Rust belongs in that project box, not in `dev-base` and not on the host.
-
-## Add a New Template
-
-1. Add `templates/project-envs/<name>.sh`.
-2. Assume `_dev-base.sh` has already installed editor/Git basics.
-3. Make it idempotent.
-4. Install language tools inside the Distrobox only.
-5. Add an optional devcontainer template under `templates/devcontainer/<name>/`.
-6. Document the new template in `templates/project-envs/README.md`.
-
-Then run:
-
-```bash
-ws-new <name> MyProject
-```
-
-## Remove an Environment Safely
-
-```bash
-ws-remove Terrakit
-```
-
-Removal asks before deleting the Distrobox. It preserves
-`~/Projects/Terrakit` by default and asks separately before deleting
-`~/Boxes/projects/Terrakit`.
-
-## Why Not Install Language Tooling on the Host?
-
-Host-level language stacks become shared mutable state. They are easy to forget,
-hard to reproduce, and often conflict across projects.
-
-Project boxes make tooling explicit. If a project needs Rust nightly, Node LTS,
-a specific .NET SDK, or a local database, that choice belongs to the project
-environment rather than the machine.
+The source folder is preserved by default.

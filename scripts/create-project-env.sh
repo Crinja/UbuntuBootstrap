@@ -19,14 +19,15 @@ Templates:
 Options:
   --image <image>          Container image to use. Default: ubuntu:24.04
   --with-devcontainer      Copy matching templates/devcontainer/<template>/ files
+  --with-docker            Install Docker/Compose tooling inside the project box
   --force                  Allow overwriting generated .devcontainer
   --no-ide                 Do not install VS Code in the project box
   --no-template-run        Create the box but skip running the project template
   --dry-run, -n            Print intended changes without applying them
 
 Examples:
-  ./scripts/create-project-env.sh rust Terrakit
-  ./scripts/create-project-env.sh dotnet HackJack --with-devcontainer
+  ./scripts/create-project-env.sh rust ExampleProject
+  ./scripts/create-project-env.sh dotnet HackJack --with-devcontainer --with-docker
   ./scripts/create-project-env.sh node CSIT314-TalentMatching
   ./scripts/create-project-env.sh cpp EngineExperiment
 EOF
@@ -78,6 +79,7 @@ devcontainer_template_name() {
 
 image="ubuntu:24.04"
 with_devcontainer=0
+install_docker=0
 force=0
 run_template=1
 install_vscode=1
@@ -115,6 +117,10 @@ while [[ $# -gt 0 ]]; do
       with_devcontainer=1
       shift
       ;;
+    --with-docker)
+      install_docker=1
+      shift
+      ;;
     --force)
       force=1
       shift
@@ -146,9 +152,14 @@ section "Project environment creation"
 [[ "$template" =~ ^[a-z0-9._-]+$ ]] || die "Template name contains unsupported characters after normalization: $template"
 
 template_script="${REPO_ROOT}/templates/project-envs/${template}.sh"
-base_dev_template="${REPO_ROOT}/templates/project-envs/_dev-base.sh"
+project_baseline_template="${REPO_ROOT}/templates/project-envs/_project-baseline.sh"
+docker_template="${REPO_ROOT}/templates/project-envs/_docker.sh"
 [[ -f "$template_script" ]] || die "Unknown project template '$template'. Expected $template_script"
-[[ -f "$base_dev_template" ]] || die "Missing base dev template: $base_dev_template"
+[[ -f "$project_baseline_template" ]] || die "Missing project baseline template: $project_baseline_template"
+
+if [[ "$install_docker" -eq 1 ]]; then
+  [[ -f "$docker_template" ]] || die "Missing Docker template: $docker_template"
+fi
 
 normalized_project="$(normalize_project_name "$project_name")"
 box_name="project-${normalized_project}"
@@ -170,6 +181,11 @@ if [[ "$install_vscode" -eq 1 ]]; then
   log "IDE: VS Code will be installed inside the project box"
 else
   log "IDE: skipped because --no-ide was passed"
+fi
+if [[ "$install_docker" -eq 1 ]]; then
+  log "Container tooling: Docker/Compose will be installed inside the project box"
+else
+  log "Container tooling: skipped; pass --with-docker to install Docker in this project box"
 fi
 
 ensure_dir "$project_dir"
@@ -196,13 +212,21 @@ else
 fi
 
 if [[ "$run_template" -eq 1 ]]; then
-  log "Running base dev layer and '$template' template inside '$box_name'."
+  log "Running project baseline and '$template' template inside '$box_name'."
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
-    log "Would run ${base_dev_template} and ${template_script} inside ${box_name}."
+    if [[ "$install_docker" -eq 1 ]]; then
+      log "Would run ${project_baseline_template}, ${docker_template}, and ${template_script} inside ${box_name}."
+    else
+      log "Would run ${project_baseline_template} and ${template_script} inside ${box_name}."
+    fi
   else
     {
-      cat "$base_dev_template"
+      cat "$project_baseline_template"
       printf '\n'
+      if [[ "$install_docker" -eq 1 ]]; then
+        cat "$docker_template"
+        printf '\n'
+      fi
       cat "$template_script"
     } | distrobox-enter --name "$box_name" -- env WS_INSTALL_VSCODE="$install_vscode" bash -s -- "$project_mount" "$project_name"
   fi
@@ -249,3 +273,14 @@ Inside the box, the project folder is mounted at:
 A convenience symlink is also created at:
   ~/project
 EOF
+
+if [[ "$install_docker" -eq 1 ]]; then
+  cat <<'EOF'
+
+Docker/Compose was requested for this project box. After entering the box, check:
+  docker --version
+  docker compose version
+
+If group membership changed, exit and re-enter the Distrobox before using Docker.
+EOF
+fi

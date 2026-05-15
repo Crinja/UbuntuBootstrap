@@ -13,7 +13,7 @@ Usage:
   ./scripts/enter-project-env.sh <project-name>
 
 Example:
-  ./scripts/enter-project-env.sh Terrakit
+  ./scripts/enter-project-env.sh ExampleProject
 EOF
 }
 

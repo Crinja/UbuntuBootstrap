@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bootstrap a minimal Ubuntu management host for Flatpak, Podman, Distrobox,
-# base task boxes, and project-scoped development environments.
+# AI tool boxes, and project-scoped development environments.
 
 set -euo pipefail
 
@@ -17,8 +17,8 @@ Bootstraps the Ubuntu host in this order:
   1. install-host-packages.sh
   2. install-flatpaks.sh
   3. create-folders.sh
-  4. create-base-boxes.sh
-  5. setup-ai-code.sh
+  4. create-tool-boxes.sh
+  5. setup-ai-tools.sh
   6. install-shell-integration.sh
   7. verify.sh
 
@@ -62,17 +62,17 @@ run chmod +x \
 section "Installing host management packages"
 bash "${REPO_ROOT}/scripts/install-host-packages.sh"
 
-section "Installing Flatpak desktop applications"
+section "Configuring Flatpak"
 bash "${REPO_ROOT}/scripts/install-flatpaks.sh"
 
 section "Creating workstation folders"
 bash "${REPO_ROOT}/scripts/create-folders.sh"
 
-section "Creating base Distroboxes"
-bash "${REPO_ROOT}/scripts/create-base-boxes.sh"
+section "Creating AI tool Distroboxes"
+bash "${REPO_ROOT}/scripts/create-tool-boxes.sh"
 
-section "Configuring shared AI coding tools"
-bash "${REPO_ROOT}/scripts/setup-ai-code.sh"
+section "Configuring AI coding tools"
+bash "${REPO_ROOT}/scripts/setup-ai-tools.sh"
 
 section "Installing Bash wrapper commands"
 bash "${REPO_ROOT}/scripts/install-shell-integration.sh"

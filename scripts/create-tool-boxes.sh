@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Create broad task Distroboxes. These are not development stacks.
+# Create the small set of always-present AI tool boxes.
+#
 # Custom --home paths reduce dotfile/config contamination on the host, but
 # Distrobox is a workflow and contamination-control tool, not a hard security
-# boundary. Use a VM for genuinely untrusted software.
+# boundary.
 
 set -euo pipefail
 
@@ -13,9 +14,9 @@ source "${SCRIPT_DIR}/lib.sh"
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/create-base-boxes.sh [--dry-run]
+  ./scripts/create-tool-boxes.sh [--dry-run]
 
-Creates base boxes from config/base-boxes.conf:
+Creates tool boxes from config/tool-boxes.conf:
   name|image|home|optional-semicolon-separated-volumes
 EOF
 }
@@ -36,7 +37,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-section "Base Distrobox creation"
+section "Tool Distrobox creation"
 if ! command_exists distrobox-create; then
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
     warn "distrobox-create is not installed, but continuing because dry-run mode is enabled."
@@ -45,7 +46,7 @@ if ! command_exists distrobox-create; then
   fi
 fi
 
-config_file="${REPO_ROOT}/config/base-boxes.conf"
+config_file="${REPO_ROOT}/config/tool-boxes.conf"
 
 expand_volume_spec() {
   local spec="$1"
@@ -74,8 +75,8 @@ ensure_volume_source_dir() {
 
 while IFS='|' read -r name image home_path volumes; do
   [[ -n "${name:-}" ]] || continue
-  [[ -n "${image:-}" ]] || die "Missing image for base box '$name'."
-  [[ -n "${home_path:-}" ]] || die "Missing home path for base box '$name'."
+  [[ -n "${image:-}" ]] || die "Missing image for tool box '$name'."
+  [[ -n "${home_path:-}" ]] || die "Missing home path for tool box '$name'."
 
   home_path="$(expand_user_path "$home_path")"
 
@@ -100,12 +101,12 @@ while IFS='|' read -r name image home_path volumes; do
   fi
 
   if distrobox_exists "$name"; then
-    log "Base box already exists: $name"
+    log "Tool box already exists: $name"
     continue
   fi
 
-  log "Creating base box '$name' from '$image' with home '$home_path'."
+  log "Creating tool box '$name' from '$image' with home '$home_path'."
   run "${create_args[@]}"
 done < <(read_config_lines "$config_file")
 
-log "Base Distrobox creation complete. Boxes are not entered automatically."
+log "Tool Distrobox creation complete."

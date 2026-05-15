@@ -7,6 +7,8 @@ Ubuntu workstation helpers
 Common commands:
   ws-new <template> <project-name> [options]
       Create a project-scoped Distrobox.
+      VS Code is installed by default. Use --no-ide to skip it.
+      Use --with-docker for project-local Docker/Compose tooling.
 
   ws-enter <project-name>
       Enter the project Distrobox and start in the project folder.
@@ -20,38 +22,32 @@ Common commands:
   ws-code <project-name> [code-args...]
       Launch VS Code from the project Distrobox.
 
-  ws-code --base [code-args...]
-      Launch VS Code from the SDK-free dev-base box.
-
   ws-ai-setup
-      Repair or update the shared ai-code box with Claude Code and Codex CLI.
+      Repair or update the claude-code and codex boxes.
 
   ws-claude <project-name> [claude-args...]
-      Run Claude Code from ai-code with project Distrobox tools exposed.
+      Run Claude Code from claude-code inside the project Distrobox shell.
 
   ws-codex <project-name> [codex-args...]
-      Run Codex CLI from ai-code with project Distrobox tools exposed.
-
-  ws-ai-shell <project-name>
-      Open the selected project Distrobox shell used by the AI bridge.
+      Run Codex CLI from codex inside the project Distrobox shell.
 
 Templates:
   rust rust-nightly cpp csharp dotnet java js node python php generic
 
 Examples:
-  ws-new rust Terrakit
-  ws-new dotnet HackJack --with-devcontainer
+  ws-new rust ExampleProject
+  ws-new dotnet HackJack --with-devcontainer --with-docker
   ws-new node CSIT314-TalentMatching
+  ws-new python HeadlessScript --no-ide
   ws-new cpp EngineExperiment
   ws-new rust-nightly CompilerExperiment
-  ws-enter Terrakit
-  ws-code Terrakit
-  ws-code --base
+  ws-enter ExampleProject
+  ws-code ExampleProject
   ws-ai-setup
-  ws-claude Terrakit
-  ws-codex Terrakit
+  ws-claude ExampleProject
+  ws-codex ExampleProject
   ws-list
-  ws-remove Terrakit
+  ws-remove ExampleProject
 
 Project layout:
   Source:    ~/Projects/<project-name>

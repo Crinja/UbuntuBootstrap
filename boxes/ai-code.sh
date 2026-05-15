@@ -17,7 +17,6 @@ sudo apt-get update
 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
   ca-certificates \
   curl \
-  distrobox \
   fd-find \
   git \
   git-lfs \
@@ -81,6 +80,14 @@ if command -v distrobox-host-exec >/dev/null 2>&1; then
   # This enables ws-claude/ws-codex to keep the AI tool in ai-code while running
   # project commands in project-<name> Distroboxes.
   distrobox-host-exec --yes true || true
+else
+  cat >&2 <<'EOF'
+WARN: distrobox-host-exec was not found inside ai-code.
+      ws-claude/ws-codex can still launch, but project command bridging will not
+      work until Distrobox host integration is available inside this box.
+      Do not install the distrobox apt package inside this Distrobox; it can
+      conflict with host-managed Distrobox files.
+EOF
 fi
 
 cat <<'EOF'
@@ -95,7 +102,8 @@ Common host-side commands:
 Inside ai-code:
   /work/projects contains host ~/Projects
   /work/scratch contains host ~/Scratch
-  distrobox-host-exec is used by ws-claude/ws-codex to run project commands
+  distrobox-host-exec is used by ws-claude/ws-codex to run project commands,
+  when host integration exposes it inside this box
 
 Keep API keys, auth tokens, and local agent settings out of Git.
 EOF

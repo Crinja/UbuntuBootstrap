@@ -175,11 +175,28 @@ The bridge deliberately does not shadow `bash` or `sh`, because that breaks
 scripts using `#!/usr/bin/env bash`.
 
 If `ws-claude <project>` reports that the AI tool bridge could not enter the
-project box, repair the shared AI box:
+project box, first check whether Distrobox host integration is visible inside
+`ai-code`:
+
+```bash
+distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
+```
+
+Do not install the Ubuntu `distrobox` apt package inside the `ai-code`
+Distrobox. Distrobox may already inject host-managed files such as
+`/usr/bin/distrobox-export`, and dpkg can fail with `Invalid cross-device link`
+when trying to replace them.
+
+If that happened, repair the package state inside `ai-code`:
+
+```bash
+distrobox-enter --name ai-code -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
+```
+
+Then update this repository and rerun:
 
 ```bash
 ws-ai-setup
-distrobox-enter --name ai-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
 ```
 
 Then retry:

@@ -34,9 +34,15 @@ ws-ai-shell TerraKit
 ```
 
 Those commands enter `ai-code`, change to `/work/projects/TerraKit`, and launch
-the selected tool. A temporary tool bridge is added to `PATH`, so commands such
-as `cargo`, `node`, `npm`, `dotnet`, `python3`, `java`, `cmake`, and `composer`
-delegate into the matching project Distrobox, for example `project-terrakit`.
+the selected tool. A temporary command bridge is added so shell commands run in
+the matching project Distrobox, for example `project-terrakit`.
+
+The launcher exports `SHELL` to a generated project-command shell. AI tools that
+run commands through `$SHELL -c ...` execute those commands in the project box,
+with the working directory mapped from `/work/projects/TerraKit` to
+`/work/terrakit`. Common direct tool executions such as `cargo`, `node`, `npm`,
+`dotnet`, `python3`, `java`, `cmake`, and `composer` are also shimmed into the
+project box.
 
 For repo-local scripts that bypass `PATH`, run them through:
 

@@ -187,8 +187,13 @@ case "$current_dir" in
     ;;
 esac
 
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
+if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
+  printf 'bridge: %s -> %s:%s\n' "$command_name" "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
+fi
+
+exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
   bash -lc '
+    unset BASH_ENV ENV
     if [ -f "${HOME}/.cargo/env" ]; then
       . "${HOME}/.cargo/env"
     fi
@@ -240,8 +245,15 @@ case "$current_dir" in
     ;;
 esac
 
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
+if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
+  printf 'bridge: exec -> %s:%s ::' "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
+  printf ' %q' "$@" >&2
+  printf '\n' >&2
+fi
+
+exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
   bash -lc '
+    unset BASH_ENV ENV
     if [ -f "${HOME}/.cargo/env" ]; then
       . "${HOME}/.cargo/env"
     fi
@@ -290,6 +302,7 @@ esac
 
 exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
   bash -lc '
+    unset BASH_ENV ENV
     if [ -f "${HOME}/.cargo/env" ]; then
       . "${HOME}/.cargo/env"
     fi
@@ -303,9 +316,166 @@ exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
       export PATH
     fi
     cd "$1" || exit 1
-    exec "${SHELL:-bash}"
+    export SHELL=/bin/bash
+    exec /bin/bash -l
   ' _ "$project_dir"
 PROJECT_SHELL
+
+cat >"${bridge_bin}/ws-project-command-shell" <<'PROJECT_COMMAND_SHELL'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v distrobox-host-exec >/dev/null 2>&1; then
+  printf 'ERROR: distrobox-host-exec is not available inside ai-code; cannot run commands in the project box.\n' >&2
+  exit 127
+fi
+
+: "${WS_PROJECT_BOX_NAME:?}"
+: "${WS_AI_PROJECT_ROOT:?}"
+: "${WS_PROJECT_BOX_ROOT:?}"
+
+current_dir="$(pwd)"
+
+case "$current_dir" in
+  "$WS_AI_PROJECT_ROOT")
+    project_dir="$WS_PROJECT_BOX_ROOT"
+    ;;
+  "$WS_AI_PROJECT_ROOT"/*)
+    relative_dir="${current_dir#"$WS_AI_PROJECT_ROOT"/}"
+    project_dir="${WS_PROJECT_BOX_ROOT}/${relative_dir}"
+    ;;
+  *)
+    project_dir="$WS_PROJECT_BOX_ROOT"
+    ;;
+esac
+
+run_interactive() {
+  exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
+    bash -lc '
+      unset BASH_ENV ENV
+      if [ -f "${HOME}/.cargo/env" ]; then
+        . "${HOME}/.cargo/env"
+      fi
+      export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
+      if [ -s "${NVM_DIR}/nvm.sh" ]; then
+        . "${NVM_DIR}/nvm.sh"
+        nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+      fi
+      if [ -d "${HOME}/.local/bin" ]; then
+        PATH="${HOME}/.local/bin:${PATH}"
+        export PATH
+      fi
+      cd "$1" || exit 1
+      export SHELL=/bin/bash
+      exec /bin/bash -l
+    ' _ "$project_dir"
+}
+
+run_command_string() {
+  local command_string="$1"
+  shift
+
+  if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
+    printf 'bridge: shell -> %s:%s :: %s\n' "$WS_PROJECT_BOX_NAME" "$project_dir" "$command_string" >&2
+  fi
+
+  exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
+    bash -lc '
+      unset BASH_ENV ENV
+      if [ -f "${HOME}/.cargo/env" ]; then
+        . "${HOME}/.cargo/env"
+      fi
+      export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
+      if [ -s "${NVM_DIR}/nvm.sh" ]; then
+        . "${NVM_DIR}/nvm.sh"
+        nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+      fi
+      if [ -d "${HOME}/.local/bin" ]; then
+        PATH="${HOME}/.local/bin:${PATH}"
+        export PATH
+      fi
+      cd "$1" || exit 1
+      shift
+      command_string="$1"
+      shift
+      export SHELL=/bin/bash
+      exec /bin/bash -lc "$command_string" ws-project-command "$@"
+    ' _ "$project_dir" "$command_string" "$@"
+}
+
+run_direct() {
+  if [[ "${WS_AI_BRIDGE_DEBUG:-0}" == "1" ]]; then
+    printf 'bridge: direct shell args -> %s:%s ::' "$WS_PROJECT_BOX_NAME" "$project_dir" >&2
+    printf ' %q' "$@" >&2
+    printf '\n' >&2
+  fi
+
+  exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
+    bash -lc '
+      unset BASH_ENV ENV
+      if [ -f "${HOME}/.cargo/env" ]; then
+        . "${HOME}/.cargo/env"
+      fi
+      export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
+      if [ -s "${NVM_DIR}/nvm.sh" ]; then
+        . "${NVM_DIR}/nvm.sh"
+        nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+      fi
+      if [ -d "${HOME}/.local/bin" ]; then
+        PATH="${HOME}/.local/bin:${PATH}"
+        export PATH
+      fi
+      cd "$1" || exit 1
+      shift
+      export SHELL=/bin/bash
+      exec "$@"
+    ' _ "$project_dir" "$@"
+}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -c)
+      shift
+      [[ "$#" -ge 1 ]] || {
+        printf 'ERROR: -c requires a command string.\n' >&2
+        exit 2
+      }
+      command_string="$1"
+      shift
+      run_command_string "$command_string" "$@"
+      ;;
+    -*c*)
+      shift
+      [[ "$#" -ge 1 ]] || {
+        printf 'ERROR: shell option containing -c requires a command string.\n' >&2
+        exit 2
+      }
+      command_string="$1"
+      shift
+      run_command_string "$command_string" "$@"
+      ;;
+    -l|-i|-li|-il)
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      run_direct "$@"
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [[ "$#" -eq 0 ]]; then
+  run_interactive
+fi
+
+run_direct "$@"
+PROJECT_COMMAND_SHELL
 
 cat >"${bridge_bin}/ws-project-apt-install" <<'PROJECT_APT_INSTALL'
 #!/usr/bin/env bash
@@ -325,8 +495,9 @@ fi
 
 printf 'Installing apt package(s) inside %s only: %s\n' "$WS_PROJECT_BOX_NAME" "$*" >&2
 
-exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
+exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" --no-tty -- \
   bash -lc '
+    unset BASH_ENV ENV
     sudo apt-get update
     sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
   ' _ "$@"
@@ -336,6 +507,7 @@ chmod +x "$shim"
 chmod +x \
   "${bridge_bin}/ws-project-exec" \
   "${bridge_bin}/ws-project-shell" \
+  "${bridge_bin}/ws-project-command-shell" \
   "${bridge_bin}/ws-project-apt-install"
 
 for tool in $bridge_tools; do
@@ -351,6 +523,7 @@ rm -f "${bridge_bin}/bash" "${bridge_bin}/sh" "${bridge_bin}/ws-ai-bash" "${brid
   printf 'export WS_AI_TOOL_BRIDGE=1\n'
   printf 'export WS_AI_BRIDGE_ENV=%q\n' "$bridge_env"
   printf 'export BASH_ENV=%q\n' "$bridge_env"
+  printf 'export SHELL=%q\n' "${bridge_bin}/ws-project-command-shell"
   printf 'case ":${PATH}:" in *:%q:*) ;; *) export PATH=%q:${PATH} ;; esac\n' "$bridge_bin" "$bridge_bin"
 } >"$bridge_env"
 

@@ -158,16 +158,32 @@ Then open a bridged shell:
 
 ```bash
 ws-ai-shell TerraKit
-echo "$BASH_ENV"
+pwd
 command -v cargo
 cargo --version
 ```
 
-`BASH_ENV` should point into `~/.local/share/ws-ai-tool-bridge/...` and
-`command -v cargo` should resolve to the bridge path. The launcher sets
-`BASH_ENV` so non-interactive Bash commands spawned by Claude/Codex inherit the
-same project tool bridge. It deliberately does not shadow `bash` or `sh`, because
-that breaks scripts using `#!/usr/bin/env bash`.
+`ws-ai-shell <project>` uses the bridge to put you in the project execution
+context. `pwd` should be the project mount inside the project Distrobox, such as
+`/work/terrakit`, and `cargo --version` should run directly there.
+
+For Claude/Codex launches, the wrapper runs the AI tool from `ai-code` but
+exports `SHELL` to a generated project-command shell. Shell commands spawned via
+`$SHELL -c ...` run inside the project Distrobox. Common direct tool executions
+such as `cargo`, `node`, `dotnet`, and `python3` are still shimmed as a fallback.
+The bridge deliberately does not shadow `bash` or `sh`, because that breaks
+scripts using `#!/usr/bin/env bash`.
+
+If a bridged command hangs, rerun it with bridge debugging enabled:
+
+```bash
+WS_AI_BRIDGE_DEBUG=1 cargo --version
+WS_AI_BRIDGE_DEBUG=1 ws-project-exec cargo --version
+```
+
+Tool commands use `distrobox-enter --no-tty` through `distrobox-host-exec`,
+because Distrobox recommends disabling TTY allocation for script-style command
+execution.
 
 If repo-local scripts bypass `PATH`, run them through the project box explicitly:
 

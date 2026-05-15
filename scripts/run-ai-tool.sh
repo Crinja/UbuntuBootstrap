@@ -332,44 +332,17 @@ exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
   ' _ "$@"
 PROJECT_APT_INSTALL
 
-cat >"${bridge_bin}/ws-ai-bash" <<'AI_BASH'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [[ -n "${WS_AI_BRIDGE_ENV:-}" && -f "$WS_AI_BRIDGE_ENV" ]]; then
-  # shellcheck source=/dev/null
-  . "$WS_AI_BRIDGE_ENV"
-fi
-
-exec /usr/bin/bash "$@"
-AI_BASH
-
-cat >"${bridge_bin}/ws-ai-sh" <<'AI_SH'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [[ -n "${WS_AI_BRIDGE_ENV:-}" && -f "$WS_AI_BRIDGE_ENV" ]]; then
-  # shellcheck source=/dev/null
-  . "$WS_AI_BRIDGE_ENV"
-fi
-
-exec /usr/bin/sh "$@"
-AI_SH
-
 chmod +x "$shim"
 chmod +x \
   "${bridge_bin}/ws-project-exec" \
   "${bridge_bin}/ws-project-shell" \
-  "${bridge_bin}/ws-project-apt-install" \
-  "${bridge_bin}/ws-ai-bash" \
-  "${bridge_bin}/ws-ai-sh"
-
-ln -sfn "ws-ai-bash" "${bridge_bin}/bash"
-ln -sfn "ws-ai-sh" "${bridge_bin}/sh"
+  "${bridge_bin}/ws-project-apt-install"
 
 for tool in $bridge_tools; do
   ln -sfn ".ws-project-tool" "${bridge_bin}/${tool}"
 done
+
+rm -f "${bridge_bin}/bash" "${bridge_bin}/sh" "${bridge_bin}/ws-ai-bash" "${bridge_bin}/ws-ai-sh"
 
 {
   printf 'export WS_PROJECT_BOX_NAME=%q\n' "$project_box_name"
@@ -378,8 +351,6 @@ done
   printf 'export WS_AI_TOOL_BRIDGE=1\n'
   printf 'export WS_AI_BRIDGE_ENV=%q\n' "$bridge_env"
   printf 'export BASH_ENV=%q\n' "$bridge_env"
-  printf 'export ENV=%q\n' "$bridge_env"
-  printf 'export SHELL=%q\n' "${bridge_bin}/ws-ai-bash"
   printf 'case ":${PATH}:" in *:%q:*) ;; *) export PATH=%q:${PATH} ;; esac\n' "$bridge_bin" "$bridge_bin"
 } >"$bridge_env"
 

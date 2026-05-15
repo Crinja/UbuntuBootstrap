@@ -158,16 +158,16 @@ Then open a bridged shell:
 
 ```bash
 ws-ai-shell TerraKit
-echo "$SHELL"
 echo "$BASH_ENV"
 command -v cargo
 cargo --version
 ```
 
-`SHELL` should point into `~/.local/share/ws-ai-tool-bridge/...` and
-`command -v cargo` should resolve to the bridge path. The launcher also sets
+`BASH_ENV` should point into `~/.local/share/ws-ai-tool-bridge/...` and
+`command -v cargo` should resolve to the bridge path. The launcher sets
 `BASH_ENV` so non-interactive Bash commands spawned by Claude/Codex inherit the
-same project tool bridge.
+same project tool bridge. It deliberately does not shadow `bash` or `sh`, because
+that breaks scripts using `#!/usr/bin/env bash`.
 
 If repo-local scripts bypass `PATH`, run them through the project box explicitly:
 

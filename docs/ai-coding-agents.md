@@ -33,9 +33,14 @@ ws-codex TerraKit
 ws-ai-shell TerraKit
 ```
 
-Those commands enter `ai-code`, change to `/work/projects/TerraKit`, and launch
-the selected tool. A temporary command bridge is added so shell commands run in
-the matching project Distrobox, for example `project-terrakit`.
+`ws-claude` and `ws-codex` enter `ai-code`, change to
+`/work/projects/TerraKit`, and launch the selected tool. A temporary command
+bridge is added so shell commands run in the matching project Distrobox, for
+example `project-terrakit`.
+
+`ws-ai-shell TerraKit` opens an interactive shell directly in `project-terrakit`.
+Interactive shells do not do the nested `ai-code -> host -> project` hop, because
+that path is fragile with TTY handling.
 
 The launcher exports `SHELL` to a generated project-command shell. AI tools that
 run commands through `$SHELL -c ...` execute those commands in the project box,

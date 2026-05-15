@@ -163,8 +163,8 @@ command -v cargo
 cargo --version
 ```
 
-`ws-ai-shell <project>` uses the bridge to put you in the project execution
-context. `pwd` should be the project mount inside the project Distrobox, such as
+`ws-ai-shell <project>` opens an interactive shell directly in the project
+Distrobox. `pwd` should be the project mount inside that box, such as
 `/work/terrakit`, and `cargo --version` should run directly there.
 
 For Claude/Codex launches, the wrapper runs the AI tool from `ai-code` but

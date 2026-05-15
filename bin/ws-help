@@ -33,7 +33,7 @@ Common commands:
       Run Codex CLI from ai-code with project Distrobox tools exposed.
 
   ws-ai-shell <project-name>
-      Enter ai-code in the selected project folder with tool bridge active.
+      Open the selected project Distrobox shell used by the AI bridge.
 
 Templates:
   rust rust-nightly cpp csharp dotnet java js node python php generic

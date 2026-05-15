@@ -106,11 +106,19 @@ bridge_env_path=""
 
 if [[ "${WS_DRY_RUN}" == "1" ]]; then
   if [[ "$tool_bridge" -eq 1 ]]; then
-    log "Would expose tools from ${project_box_name}:${project_box_path} inside ai-code."
+    if [[ "$tool" == "shell" ]]; then
+      log "Would enter ${project_box_name} directly at ${project_box_path}."
+    else
+      log "Would expose tools from ${project_box_name}:${project_box_path} inside ai-code."
+    fi
   fi
 
   if [[ "$tool" == "shell" ]]; then
-    log "Would enter ai-code at ${ai_project_path}."
+    if [[ "$tool_bridge" -eq 1 ]]; then
+      log "Would open an interactive project shell."
+    else
+      log "Would enter ai-code at ${ai_project_path}."
+    fi
   else
     log "Would run '${tool}' in ai-code at ${ai_project_path}."
   fi
@@ -539,12 +547,37 @@ EOF
   [[ -n "$bridge_env_path" ]] || die "Could not prepare the AI tool bridge inside ai-code."
 }
 
-if [[ "$tool_bridge" -eq 1 ]]; then
+if [[ "$tool_bridge" -eq 1 && "$tool" != "shell" ]]; then
   prepare_tool_bridge
 fi
 
 case "$tool" in
   shell)
+    if [[ "$tool_bridge" -eq 1 ]]; then
+      if ! distrobox_exists "$project_box_name"; then
+        die "Project Distrobox '${project_box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
+      fi
+
+      exec distrobox-enter --name "$project_box_name" -- bash -lc '
+        unset BASH_ENV ENV
+        if [ -f "${HOME}/.cargo/env" ]; then
+          . "${HOME}/.cargo/env"
+        fi
+        export NVM_DIR="${NVM_DIR:-${HOME}/.nvm}"
+        if [ -s "${NVM_DIR}/nvm.sh" ]; then
+          . "${NVM_DIR}/nvm.sh"
+          nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+        fi
+        if [ -d "${HOME}/.local/bin" ]; then
+          PATH="${HOME}/.local/bin:${PATH}"
+          export PATH
+        fi
+        cd "$1" || exit 1
+        export SHELL=/bin/bash
+        exec /bin/bash -l
+      ' _ "$project_box_path"
+    fi
+
     exec distrobox-enter --name ai-code -- bash -lc "${source_nvm}"'
       if [ -n "$1" ] && [ -f "$1" ]; then
         . "$1"

@@ -45,10 +45,10 @@ machine.
    ws-code --base
    ```
 
-9. Optional: configure the shared AI coding tools box:
+9. Confirm the shared AI coding tools box was configured by bootstrap:
 
    ```bash
-   ws-ai-setup
+   distrobox-enter --name ai-code -- bash -lc 'command -v claude && command -v codex'
    ```
 
 10. Create a Rust project environment:

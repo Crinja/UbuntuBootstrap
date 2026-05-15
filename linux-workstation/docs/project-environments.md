@@ -50,13 +50,13 @@ itself.
 AI coding agents live in the shared `ai-code` box, not in each project box:
 
 ```bash
-ws-ai-setup
 ws-claude TerraKit
 ws-codex TerraKit
 ```
 
-`ai-code` sees host projects at `/work/projects`. This keeps agent auth outside
-the host without requiring Claude/Codex setup for every project.
+Bootstrap configures `ai-code` automatically. It sees host projects at
+`/work/projects`, keeping agent auth outside the host without requiring
+Claude/Codex setup for every project.
 
 Launch VS Code from the project box:
 

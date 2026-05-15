@@ -5,13 +5,16 @@ Claude Code and Codex CLI live in one shared `ai-code` Distrobox.
 They are not host tools. They can read files, edit code, run commands, and hold
 credentials, so they live outside the host while avoiding per-project auth setup.
 
-## Configure Once
+## Configure Or Update
 
 ```bash
 ws-ai-setup
 ```
 
-This configures the `ai-code` Distrobox created by bootstrap. The box mounts:
+Bootstrap runs this automatically after creating the `ai-code` Distrobox. Run it
+manually later to repair or update Claude Code and Codex CLI.
+
+The box mounts:
 
 ```text
 ~/Projects -> /work/projects

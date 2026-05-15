@@ -19,6 +19,7 @@ is included for host rollback.
 - Installs desktop apps from `config/flatpaks.txt`.
 - Creates a predictable folder layout under your home directory.
 - Creates broad base Distroboxes: `ai-code`, `dev-base`, and `experimental`.
+- Configures the shared `ai-code` box with Claude Code and Codex CLI.
 - Provides project-scoped environment tooling:
   - `ws-new rust Terrakit`
   - `ws-enter Terrakit`
@@ -88,10 +89,16 @@ distrobox-enter --name dev-base -- bash -s < boxes/dev-base.sh
 ws-code --base
 ```
 
-Configure the shared AI coding tools box once:
+The shared AI coding tools box is configured during bootstrap. To repair or
+update it later:
 
 ```bash
 ws-ai-setup
+```
+
+Run agents against a project:
+
+```bash
 ws-claude Terrakit
 ws-codex Terrakit
 ```

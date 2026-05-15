@@ -18,8 +18,9 @@ Bootstraps the Ubuntu host in this order:
   2. install-flatpaks.sh
   3. create-folders.sh
   4. create-base-boxes.sh
-  5. install-shell-integration.sh
-  6. verify.sh
+  5. setup-ai-code.sh
+  6. install-shell-integration.sh
+  7. verify.sh
 
 This script refuses to run as root. It installs only host management tools;
 project language stacks belong inside project Distroboxes or devcontainers.
@@ -69,6 +70,9 @@ bash "${REPO_ROOT}/scripts/create-folders.sh"
 
 section "Creating base Distroboxes"
 bash "${REPO_ROOT}/scripts/create-base-boxes.sh"
+
+section "Configuring shared AI coding tools"
+bash "${REPO_ROOT}/scripts/setup-ai-code.sh"
 
 section "Installing Bash wrapper commands"
 bash "${REPO_ROOT}/scripts/install-shell-integration.sh"

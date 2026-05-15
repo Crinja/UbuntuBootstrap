@@ -108,7 +108,7 @@ check Wayland/X11 integration for your Distrobox version and desktop session.
 
 ## Claude Code or Codex Is Missing
 
-Configure the shared AI tools box:
+Repair or update the shared AI tools box:
 
 ```bash
 ws-ai-setup
@@ -139,6 +139,7 @@ ws-claude TerraKit
 ws-codex TerraKit
 ```
 
+Bootstrap runs `ws-ai-setup` automatically, but the command is safe to rerun.
 Claude Code and Codex CLI require network access for install and authentication.
 Do not install them on the host.
 

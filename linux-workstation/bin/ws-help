@@ -24,7 +24,7 @@ Common commands:
       Launch VS Code from the SDK-free dev-base box.
 
   ws-ai-setup
-      Configure the shared ai-code box with Claude Code and Codex CLI.
+      Repair or update the shared ai-code box with Claude Code and Codex CLI.
 
   ws-claude <project-name> [claude-args...]
       Run Claude Code from ai-code in the selected project folder.

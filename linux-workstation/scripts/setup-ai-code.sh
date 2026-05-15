@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configure the shared ai-code Distrobox once.
+# Configure or update the shared ai-code Distrobox.
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ usage() {
 Usage:
   ./scripts/setup-ai-code.sh [--dry-run]
 
-Configures the shared ai-code Distrobox with Claude Code and Codex CLI.
+Configures or updates the shared ai-code Distrobox with Claude Code and Codex CLI.
 EOF
 }
 

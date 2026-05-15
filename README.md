@@ -166,7 +166,8 @@ box, custom home, source folder, IDE, and toolchain.
 
 Use `ai-code` for Claude Code and Codex CLI. It is a single shared Distrobox
 outside the host with `~/Projects` mounted at `/work/projects`, so you configure
-agent auth once and point it at whichever project you are working on:
+agent auth once and point it at whichever project you are working on. The wrapper
+also exposes the selected project Distrobox's SDK tools to the AI session:
 
 ```bash
 ws-claude Terrakit

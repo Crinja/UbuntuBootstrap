@@ -15,7 +15,9 @@ and workflow baseline inside the project box:
 It deliberately does not install language SDKs.
 
 AI coding tools are handled by the shared `ai-code` base box, not by project
-templates. Use `ws-ai-setup`, `ws-claude`, and `ws-codex`.
+templates. Use `ws-ai-setup`, `ws-claude`, and `ws-codex`. The launch wrappers
+expose project Distrobox SDK tools into the `ai-code` session through a temporary
+tool bridge.
 
 Language templates are allowed to install tooling because the tooling is scoped
 to one project environment:

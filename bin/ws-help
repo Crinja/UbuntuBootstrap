@@ -27,13 +27,13 @@ Common commands:
       Repair or update the shared ai-code box with Claude Code and Codex CLI.
 
   ws-claude <project-name> [claude-args...]
-      Run Claude Code from ai-code in the selected project folder.
+      Run Claude Code from ai-code with project Distrobox tools exposed.
 
   ws-codex <project-name> [codex-args...]
-      Run Codex CLI from ai-code in the selected project folder.
+      Run Codex CLI from ai-code with project Distrobox tools exposed.
 
   ws-ai-shell <project-name>
-      Enter ai-code in the selected project folder.
+      Enter ai-code in the selected project folder with tool bridge active.
 
 Templates:
   rust rust-nightly cpp csharp dotnet java js node python php generic

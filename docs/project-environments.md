@@ -58,6 +58,11 @@ Bootstrap configures `ai-code` automatically. It sees host projects at
 `/work/projects`, keeping agent auth outside the host without requiring
 Claude/Codex setup for every project.
 
+When you launch an agent for a project, the wrapper also exposes that project
+Distrobox's SDK tools to the `ai-code` session. That means `cargo`, `node`,
+`dotnet`, `python3`, and similar commands run in the project environment even
+though Claude/Codex itself runs in `ai-code`.
+
 Launch VS Code from the project box:
 
 ```bash

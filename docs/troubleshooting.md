@@ -143,6 +143,43 @@ Bootstrap runs `ws-ai-setup` automatically, but the command is safe to rerun.
 Claude Code and Codex CLI require network access for install and authentication.
 Do not install them on the host.
 
+## AI Agent Cannot Find Project SDK Tools
+
+`ws-claude <project>` and `ws-codex <project>` expose common SDK commands from
+the matching project Distrobox into `ai-code`.
+
+Confirm the project Distrobox exists:
+
+```bash
+distrobox-list
+```
+
+Then open a bridged shell:
+
+```bash
+ws-ai-shell TerraKit
+command -v cargo
+cargo --version
+```
+
+If repo-local scripts bypass `PATH`, run them through the project box explicitly:
+
+```bash
+ws-project-exec ./gradlew test
+ws-project-exec ./scripts/test.sh
+```
+
+If the agent needs an apt package for this project, install it inside the
+project Distrobox:
+
+```bash
+ws-project-apt-install just
+ws-project-apt-install libssl-dev pkg-config
+```
+
+The bridge depends on `distrobox-host-exec` being available inside `ai-code`.
+If it is missing, update Distrobox and recreate or update the `ai-code` box.
+
 ## NVIDIA and GPU Caveats
 
 GPU support depends on the host driver stack. Flatpak, Distrobox, Steam, and

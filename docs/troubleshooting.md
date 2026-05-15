@@ -167,6 +167,15 @@ cargo --version
 Distrobox. `pwd` should be the project mount inside that box, such as
 `/work/terrakit`, and `cargo --version` should run directly there.
 
+If you launch `ws-claude` from inside a project Distrobox, the wrapper should
+automatically re-enter the host before launching `ai-code`. Do not set
+`WS_HOST_REEXEC` manually; it is only an internal loop guard. If host re-entry
+does not happen, check that the project box can see `distrobox-host-exec`:
+
+```bash
+command -v distrobox-host-exec
+```
+
 For Claude/Codex launches, the wrapper runs the AI tool from `ai-code` but
 exports `SHELL` to a generated project-command shell. Shell commands spawned via
 `$SHELL -c ...` run inside the project Distrobox. Common direct tool executions

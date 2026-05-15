@@ -42,6 +42,10 @@ example `project-terrakit`.
 Interactive shells do not do the nested `ai-code -> host -> project` hop, because
 that path is fragile with TTY handling.
 
+If you run `ws-claude`, `ws-codex`, or `ws-ai-shell` while already inside a
+Distrobox, the wrapper re-enters the host first and then performs the normal
+launch. This keeps Claude/Codex resolution anchored in `ai-code`.
+
 The launcher exports `SHELL` to a generated project-command shell. AI tools that
 run commands through `$SHELL -c ...` execute those commands in the project box,
 with the working directory mapped from `/work/projects/TerraKit` to

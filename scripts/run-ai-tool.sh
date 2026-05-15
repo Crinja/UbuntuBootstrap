@@ -588,6 +588,25 @@ case "$tool" in
     ;;
   claude|codex)
     exec distrobox-enter --name ai-code -- bash -lc "${source_nvm}"'
+      unset BASH_ENV ENV WS_AI_TOOL_BRIDGE WS_AI_BRIDGE_ENV WS_PROJECT_BOX_NAME WS_AI_PROJECT_ROOT WS_PROJECT_BOX_ROOT
+      export SHELL=/bin/bash
+      clean_path=""
+      IFS=":" read -r -a path_parts <<< "$PATH"
+      for path_part in "${path_parts[@]}"; do
+        case "$path_part" in
+          */.local/share/ws-ai-tool-bridge/*)
+            continue
+            ;;
+        esac
+        if [ -z "$clean_path" ]; then
+          clean_path="$path_part"
+        else
+          clean_path="${clean_path}:$path_part"
+        fi
+      done
+      PATH="$clean_path"
+      export PATH
+
       bridge_env="$1"
       project_path="$2"
       tool_name="$3"

@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${WS_HOST_REEXEC:-0}" != "1" ]] &&
+  [[ -f /run/.containerenv || -f /.dockerenv || -n "${container:-}" ]] &&
+  command -v distrobox-host-exec >/dev/null 2>&1; then
+  exec distrobox-host-exec env WS_HOST_REEXEC=1 ws-ai-shell "$@"
+fi
+
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec "${BIN_DIR}/../scripts/run-ai-tool.sh" shell "$@"

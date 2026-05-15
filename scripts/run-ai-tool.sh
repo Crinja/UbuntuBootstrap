@@ -332,8 +332,40 @@ exec distrobox-host-exec distrobox-enter --name "$WS_PROJECT_BOX_NAME" -- \
   ' _ "$@"
 PROJECT_APT_INSTALL
 
+cat >"${bridge_bin}/ws-ai-bash" <<'AI_BASH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${WS_AI_BRIDGE_ENV:-}" && -f "$WS_AI_BRIDGE_ENV" ]]; then
+  # shellcheck source=/dev/null
+  . "$WS_AI_BRIDGE_ENV"
+fi
+
+exec /usr/bin/bash "$@"
+AI_BASH
+
+cat >"${bridge_bin}/ws-ai-sh" <<'AI_SH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${WS_AI_BRIDGE_ENV:-}" && -f "$WS_AI_BRIDGE_ENV" ]]; then
+  # shellcheck source=/dev/null
+  . "$WS_AI_BRIDGE_ENV"
+fi
+
+exec /usr/bin/sh "$@"
+AI_SH
+
 chmod +x "$shim"
-chmod +x "${bridge_bin}/ws-project-exec" "${bridge_bin}/ws-project-shell" "${bridge_bin}/ws-project-apt-install"
+chmod +x \
+  "${bridge_bin}/ws-project-exec" \
+  "${bridge_bin}/ws-project-shell" \
+  "${bridge_bin}/ws-project-apt-install" \
+  "${bridge_bin}/ws-ai-bash" \
+  "${bridge_bin}/ws-ai-sh"
+
+ln -sfn "ws-ai-bash" "${bridge_bin}/bash"
+ln -sfn "ws-ai-sh" "${bridge_bin}/sh"
 
 for tool in $bridge_tools; do
   ln -sfn ".ws-project-tool" "${bridge_bin}/${tool}"
@@ -344,7 +376,11 @@ done
   printf 'export WS_AI_PROJECT_ROOT=%q\n' "$ai_project_path"
   printf 'export WS_PROJECT_BOX_ROOT=%q\n' "$project_box_path"
   printf 'export WS_AI_TOOL_BRIDGE=1\n'
-  printf 'export PATH=%q:${PATH}\n' "$bridge_bin"
+  printf 'export WS_AI_BRIDGE_ENV=%q\n' "$bridge_env"
+  printf 'export BASH_ENV=%q\n' "$bridge_env"
+  printf 'export ENV=%q\n' "$bridge_env"
+  printf 'export SHELL=%q\n' "${bridge_bin}/ws-ai-bash"
+  printf 'case ":${PATH}:" in *:%q:*) ;; *) export PATH=%q:${PATH} ;; esac\n' "$bridge_bin" "$bridge_bin"
 } >"$bridge_env"
 
 printf '__WS_BRIDGE_ENV__ %s\n' "$bridge_env"
@@ -375,16 +411,42 @@ case "$tool" in
     ;;
   claude|codex)
     exec distrobox-enter --name ai-code -- bash -lc "${source_nvm}"'
-      if [ -n "$1" ] && [ -f "$1" ]; then
-        . "$1"
-      fi
-      cd "$2" || exit 1
-      shift 2
-      if ! command -v "$1" >/dev/null 2>&1; then
-        printf "ERROR: %s was not found inside ai-code. Run: ws-ai-setup\n" "$1" >&2
+      bridge_env="$1"
+      project_path="$2"
+      tool_name="$3"
+      shift 3
+
+      if ! tool_path="$(command -v "$tool_name")"; then
+        printf "ERROR: %s was not found inside ai-code. Run: ws-ai-setup\n" "$tool_name" >&2
         exit 127
       fi
-      exec "$@"
+
+      node_path="$(command -v node || true)"
+
+      if [ -n "$bridge_env" ] && [ -f "$bridge_env" ]; then
+        . "$bridge_env"
+        if ! ws-project-exec true >/dev/null 2>&1; then
+          printf "ERROR: AI tool bridge could not enter %s from ai-code.\n" "${WS_PROJECT_BOX_NAME:-the project box}" >&2
+          printf "Try: ws-ai-shell <project>, then run: ws-project-exec true\n" >&2
+          exit 1
+        fi
+      fi
+
+      cd "$project_path" || exit 1
+
+      first_line="$(head -n 1 "$tool_path" 2>/dev/null || true)"
+      case "$first_line" in
+        *node*)
+          if [ -z "$node_path" ]; then
+            printf "ERROR: %s needs Node inside ai-code, but node was not found. Run: ws-ai-setup\n" "$tool_name" >&2
+            exit 127
+          fi
+          exec "$node_path" "$tool_path" "$@"
+          ;;
+        *)
+          exec "$tool_path" "$@"
+          ;;
+      esac
     ' _ "$bridge_env_path" "$ai_project_path" "$tool" "$@"
     ;;
 esac

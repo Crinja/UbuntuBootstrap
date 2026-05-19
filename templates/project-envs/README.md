@@ -2,10 +2,11 @@
 
 These scripts run inside project Distroboxes created by `ws-new`.
 
-`_project-baseline.sh` runs first and installs the editor/Git baseline. Language
-templates then add project-specific tooling inside that one box.
+`_project-baseline.sh` runs first and installs the Git/workflow baseline.
+Language templates then add project-specific tooling inside that one box.
 
-VS Code is part of the baseline by default. Use `--no-ide` to skip it.
+VS Code is not installed inside project boxes. Use `ws-code <project>` to open
+the source folder in the VS Code Flatpak with a project-specific profile.
 
 `_docker.sh` is optional and runs only when `ws-new` receives `--with-docker`.
 

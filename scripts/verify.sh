@@ -12,7 +12,7 @@ usage() {
 Usage:
   ./scripts/verify.sh
 
-Checks host tools, folders, shared AI state, optional Flatpaks, wrappers, and Bash integration.
+Checks host tools, folders, optional Flatpaks, wrappers, and Bash integration.
 EOF
 }
 
@@ -81,9 +81,6 @@ for folder in \
   "${HOME}/Projects" \
   "${HOME}/Boxes" \
   "${HOME}/Boxes/projects" \
-  "${HOME}/Boxes/ai-state" \
-  "${HOME}/Boxes/ai-state/claude" \
-  "${HOME}/Boxes/ai-state/codex" \
   "${HOME}/VMs" \
   "${HOME}/Scratch" \
   "${HOME}/Downloads/Quarantine"; do

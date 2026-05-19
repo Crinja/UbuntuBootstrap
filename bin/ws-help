@@ -7,7 +7,6 @@ Ubuntu workstation helpers
 Common commands:
   ws-new <template> <project-name> [options]
       Create a project-scoped Distrobox.
-      VS Code is installed by default. Use --no-ide to skip it.
       Use --with-docker for project-local Docker/Compose tooling.
       Use --with-claude, --with-codex, or --with-ai for project-local AI tools.
 
@@ -21,7 +20,7 @@ Common commands:
       Remove a project Distrobox after confirmation.
 
   ws-code <project-name> [code-args...]
-      Launch VS Code from the project Distrobox.
+      Launch the VS Code Flatpak with a project-specific profile.
 
   ws-ai-add <project-name> --claude|--codex|--all
       Add project-local Claude Code and/or Codex CLI to an existing project box.
@@ -34,7 +33,7 @@ Examples:
   ws-new dotnet HackJack --with-devcontainer --with-docker
   ws-new rust AgentProject --with-claude
   ws-new node CSIT314-TalentMatching
-  ws-new python HeadlessScript --no-ide
+  ws-new python HeadlessScript
   ws-new cpp EngineExperiment
   ws-new rust-nightly CompilerExperiment
   ws-enter ExampleProject

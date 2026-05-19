@@ -24,7 +24,7 @@ Options:
   --with-codex             Install Codex CLI inside the project box
   --with-ai                Install both Claude Code and Codex CLI
   --force                  Allow overwriting generated .devcontainer
-  --no-ide                 Do not install VS Code in the project box
+  --no-ide                 Deprecated no-op; VS Code is launched as a Flatpak
   --no-template-run        Create the box but skip running the project template
   --dry-run, -n            Print intended changes without applying them
 
@@ -88,7 +88,6 @@ install_claude=0
 install_codex=0
 force=0
 run_template=1
-install_vscode=1
 template=""
 project_name=""
 
@@ -145,7 +144,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --no-ide)
-      install_vscode=0
+      warn "--no-ide is deprecated and no longer needed; VS Code is not installed inside project boxes."
       shift
       ;;
     --no-template-run)
@@ -201,11 +200,7 @@ log "Distrobox: ${box_name}"
 log "Source folder: ${project_dir}"
 log "Box home: ${box_home}"
 log "Image: ${image}"
-if [[ "$install_vscode" -eq 1 ]]; then
-  log "IDE: VS Code will be installed inside the project box"
-else
-  log "IDE: skipped because --no-ide was passed"
-fi
+log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with a project profile"
 if [[ "$install_docker" -eq 1 ]]; then
   log "Container tooling: Docker/Compose will be installed inside the project box"
 else
@@ -225,7 +220,6 @@ fi
 
 ensure_dir "$project_dir"
 ensure_dir "$box_home"
-ensure_ai_state_dirs
 
 if ! command_exists distrobox-create && [[ "${WS_DRY_RUN}" != "1" ]]; then
   die "distrobox-create is not installed. Run ./bootstrap.sh first."
@@ -244,7 +238,6 @@ else
     --image "$image" \
     --home "$box_home" \
     --volume "${project_dir}:${project_mount}:rw" \
-    --volume "${HOME}/Boxes/ai-state:/work/ai-state:rw" \
     --yes
 fi
 
@@ -261,7 +254,7 @@ if [[ "$run_template" -eq 1 ]]; then
         printf '\n'
       fi
       cat "$template_script"
-    } | distrobox-enter --name "$box_name" -- env WS_INSTALL_VSCODE="$install_vscode" bash -s -- "$project_mount" "$project_name"
+    } | distrobox-enter --name "$box_name" -- bash -s -- "$project_mount" "$project_name"
 
     if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
       distrobox-enter --name "$box_name" -- env \
@@ -304,6 +297,9 @@ Project environment is ready.
 Enter it with:
   ws-enter ${project_name}
 
+Open it in VS Code with:
+  ws-code ${project_name}
+
 Or without wrappers:
   distrobox-enter --name ${box_name}
 
@@ -330,6 +326,10 @@ if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
 
 AI tools were requested for this project box. After entering the box, check:
 EOF
-  [[ "$install_claude" -eq 1 ]] && printf '  claude --version\n'
-  [[ "$install_codex" -eq 1 ]] && printf '  codex --version\n'
+  if [[ "$install_claude" -eq 1 ]]; then
+    printf '  claude --version\n'
+  fi
+  if [[ "$install_codex" -eq 1 ]]; then
+    printf '  codex --version\n'
+  fi
 fi

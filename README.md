@@ -40,17 +40,16 @@ Host installs:
 
 - Basic CLI/system tools.
 - Flatpak and Flathub support.
+- VS Code as a Flatpak GUI app.
 - Podman and Distrobox.
 - VM/snapshot tools.
 - `ws-*` shell helpers.
 
-AI state:
+AI tools:
 
-- Shared Claude state lives under `~/Boxes/ai-state/claude`.
-- Claude project boxes link both `~/.claude` and `~/.claude.json` into that
-  shared state.
-- Shared Codex state lives under `~/Boxes/ai-state/codex`.
 - Claude Code and Codex CLI are not installed by default.
+- When enabled, each project keeps its own AI config in its own Distrobox home.
+- There is no shared Claude/Codex settings folder.
 
 Project boxes:
 
@@ -60,8 +59,9 @@ ws-enter ExampleProject
 ws-code ExampleProject
 ```
 
-VS Code is installed inside new project boxes by default. Skip it with
-`--no-ide` for tiny or headless environments.
+`ws-code` launches the VS Code Flatpak against `~/Projects/<project>` with a
+project-specific profile named `project-<normalized-project>`. Extensions I
+install in that profile stay separate from other project profiles.
 
 Docker is opt-in per project for devcontainer-heavy repos:
 
@@ -87,8 +87,8 @@ project-exampleproject
 
 Flatpaks:
 
-`config/flatpaks.txt` is intentionally empty. The installer configures Flathub
-but installs no apps until I add app IDs.
+`config/flatpaks.txt` installs VS Code by default. Other desktop apps stay
+manual until I add their app IDs.
 
 ## Common Commands
 
@@ -96,7 +96,7 @@ but installs no apps until I add app IDs.
 ws-new rust ExampleProject
 ws-new node CSIT314-TalentMatching
 ws-new dotnet HackJack --with-devcontainer --with-docker
-ws-new python HeadlessScript --no-ide
+ws-new python HeadlessScript
 ws-new rust AgentProject --with-claude
 
 ws-enter ExampleProject
@@ -115,15 +115,13 @@ codex
 ```
 
 Claude and Codex run directly inside the selected project Distrobox. Auth/config
-state is shared through `~/Boxes/ai-state`.
+state stays local to that project's Distrobox home.
 
 ## Layout
 
 ```text
 ~/Projects/<project>
 ~/Boxes/projects/<project>
-~/Boxes/ai-state/claude
-~/Boxes/ai-state/codex
 ~/VMs
 ~/Scratch
 ~/Downloads/Quarantine
@@ -132,11 +130,13 @@ state is shared through `~/Boxes/ai-state`.
 ## Notes
 
 - No Rust, Node, .NET SDKs, databases, or project CLIs on the host.
-- No VS Code on the host.
+- No VS Code apt/deb on the host and no VS Code inside every Distrobox. VS Code
+  lives as a Flatpak GUI app.
 - No Docker on the host by default; use Podman on the host and `--with-docker`
   only for project boxes that need it.
 - No Claude Code or Codex CLI on the host. Add them per project with
   `--with-claude`, `--with-codex`, `--with-ai`, or `ws-ai-add`.
-- GUI apps should usually be Flatpaks, but none are installed by default.
+- GUI apps should usually be Flatpaks. VS Code is included by default; other
+  apps stay manual until I add them to `config/flatpaks.txt`.
 - Distrobox is for cleanliness and workflow separation, not malware isolation.
 - Use a VM for genuinely untrusted or weird system-level software.

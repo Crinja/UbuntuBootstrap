@@ -38,20 +38,19 @@ ws-enter ExampleProject
 ws-code ExampleProject
 ```
 
-Templates install the shared editor/Git baseline first, then optional language
+Templates install the shared Git/workflow baseline first, then optional language
 tooling for that project only.
 
-VS Code is installed by default inside each project box:
+Project boxes do not install VS Code. `ws-code` opens the source folder with the
+VS Code Flatpak and a project-specific profile:
 
 ```bash
 ws-new rust ExampleProject
+ws-code ExampleProject
 ```
 
-Skip it when I want a smaller environment:
-
-```bash
-ws-new python HeadlessScript --no-ide
-```
+The project Distrobox still owns the toolchain; VS Code profiles own editor
+extensions and UI settings.
 
 Docker is opt-in for repos that need devcontainers or Docker Compose:
 
@@ -69,8 +68,8 @@ ws-new node AgentWeb --with-ai
 ws-ai-add ExampleProject --codex
 ```
 
-AI auth/config state is shared through `~/Boxes/ai-state`, but the CLI binaries
-live inside whichever project boxes I explicitly enable.
+AI auth/config state stays inside that project's Distrobox home. The CLI
+binaries also live inside whichever project boxes I explicitly enable.
 
 Available templates:
 

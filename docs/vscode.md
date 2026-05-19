@@ -1,6 +1,6 @@
 # VS Code
 
-VS Code is not installed on the host.
+VS Code is installed as a Flatpak GUI app.
 
 Project editor:
 
@@ -9,17 +9,25 @@ ws-new rust ExampleProject
 ws-code ExampleProject
 ```
 
-That launches Code from the project Distrobox, so integrated terminals see the
-project toolchain. New project boxes install VS Code by default.
+That launches the VS Code Flatpak with:
 
-Skip VS Code in a project box:
-
-```bash
-ws-new python DataCheck --no-ide
+```text
+Folder:  ~/Projects/ExampleProject
+Profile: project-exampleproject
 ```
 
-If I want a general editor box later, create it manually and use:
+Extensions and editor settings installed while that profile is active stay
+separate from other project profiles.
+
+Project Distroboxes still own the toolchains:
 
 ```bash
-ws-code --box <box-name>
+ws-enter ExampleProject
+```
+
+For extensions that must run inside a container with the project toolchain, use
+a devcontainer:
+
+```bash
+ws-new node WebApp --with-devcontainer --with-docker
 ```

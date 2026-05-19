@@ -38,30 +38,21 @@ command -v codex
 cargo --version
 ```
 
-Shared state lives under:
+AI tool configuration is project-local. It lives inside that project's custom
+Distrobox home:
 
 ```text
-~/Boxes/ai-state/claude
-~/Boxes/ai-state/codex
+~/Boxes/projects/<project>/.claude
+~/Boxes/projects/<project>/.claude.json
+~/Boxes/projects/<project>/.codex
 ```
 
-Project boxes mount that state at:
+That means each project may need its own Claude/Codex login or settings. This
+is intentional: AI tools should see the same toolchain as the project, but their
+config should not silently bleed into every other project.
 
-```text
-/work/ai-state/claude
-/work/ai-state/codex
-```
-
-For Claude, setup links both pieces of state inside each opted-in project box:
-
-```text
-~/.claude      -> /work/ai-state/claude
-~/.claude.json -> /work/ai-state/claude/.claude.json
-```
-
-If Claude has moved a missing or invalid config into
-`~/.claude/backups/.claude.json.backup.*`, re-running `ws-ai-add <project>
---claude` restores the newest backup into the shared state file when no shared
-Claude config exists yet.
+If an older project used the previous shared `/work/ai-state` symlinks,
+re-running `ws-ai-add <project> --claude`, `--codex`, or `--all` localizes those
+symlinks back into the project home where possible.
 
 Do not commit keys, tokens, `.env` files, or local agent settings.

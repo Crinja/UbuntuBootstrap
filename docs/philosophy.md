@@ -8,13 +8,13 @@ snapshots, and shell helpers. Project SDKs and one-off tools live somewhere else
 Layers:
 
 - Host: management plane only.
-- Flatpak: optional GUI apps.
+- Flatpak: GUI apps, including VS Code.
 - Project Distrobox: normal development work.
 - Project Docker: opt-in only, for repos that need devcontainers or Compose.
 - Project AI tools: opt-in Claude/Codex installs inside project boxes.
-- Shared AI state: auth/config under `~/Boxes/ai-state`.
 - VM: untrusted, incompatible, or system-level experiments.
 
-Flatpak app installation is opt-in. `config/flatpaks.txt` starts empty.
+VS Code is installed as a Flatpak. Other Flatpak apps are opt-in through
+`config/flatpaks.txt`.
 
 Distrobox keeps the host clean, but it is not a hard security boundary.

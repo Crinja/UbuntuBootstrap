@@ -86,8 +86,6 @@ if ! distrobox_exists "$box_name" && [[ "${WS_DRY_RUN}" != "1" ]]; then
   die "Project Distrobox '${box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
 fi
 
-ensure_ai_state_dirs
-
 log "Project: ${project_name}"
 log "Distrobox: ${box_name}"
 [[ "$install_claude" -eq 1 ]] && log "Will install Claude Code inside ${box_name}."

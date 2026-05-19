@@ -10,8 +10,8 @@ command -v ws-new
 
 ## Flatpak
 
-The default app list is empty. To install apps, add IDs to
-`config/flatpaks.txt`, then run:
+VS Code is installed by default from `config/flatpaks.txt`. To install more
+apps, add their IDs to that file, then run:
 
 ```bash
 ./scripts/install-flatpaks.sh
@@ -45,17 +45,27 @@ Templates should be idempotent.
 
 ## VS Code
 
-Check Code inside the selected box:
+Check the VS Code Flatpak:
 
 ```bash
-distrobox-enter --name project-exampleproject -- command -v code
+flatpak info com.visualstudio.code
 ```
 
-For a manually created editor box:
+Open a project with its profile:
 
 ```bash
-ws-code --box <box-name>
+ws-code ExampleProject
 ```
+
+If `ws-code` says VS Code is not installed, run:
+
+```bash
+./scripts/install-flatpaks.sh
+```
+
+If an extension needs direct access to a compiler, debugger, or language server
+inside a container, prefer a devcontainer for that repo or configure the
+extension to call the relevant `distrobox-enter` command explicitly.
 
 ## Docker In Project Boxes
 
@@ -110,11 +120,18 @@ claude --help
 codex --help
 ```
 
-If `ws-ai-add` says `/work/ai-state` is missing, the project box was probably
-created before shared AI state was added. Recreate the project box with the
-current `ws-new` script or manually mount `~/Boxes/ai-state` at `/work/ai-state`.
+AI auth/config is project-local and lives inside the selected project box home,
+for example:
 
-Shared auth/config state is under `~/Boxes/ai-state`.
+```text
+~/Boxes/projects/ExampleProject/.claude
+~/Boxes/projects/ExampleProject/.claude.json
+~/Boxes/projects/ExampleProject/.codex
+```
+
+If an older project has `~/.claude`, `~/.claude.json`, or `~/.codex` symlinked
+to `/work/ai-state`, rerun `ws-ai-add ExampleProject --claude`, `--codex`, or
+`--all`. The setup script localizes those legacy links into the project home.
 
 If Claude prints:
 
@@ -129,10 +146,8 @@ repair the project state by re-running:
 ws-ai-add ExampleProject --claude
 ```
 
-The setup script links `~/.claude.json` to the shared Claude state file and, if
-that shared file does not exist yet, restores the newest Claude backup. If it
-warns that `~/.claude` or `~/.claude.json` already exists and was not replaced,
-move the local file or directory aside manually before re-running the command.
+The setup script restores the newest project-local Claude backup when available
+or creates a minimal local `~/.claude.json`.
 
 ## VM Instead
 

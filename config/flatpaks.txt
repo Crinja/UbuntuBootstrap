@@ -1,7 +1,8 @@
 # Optional Flatpak applications.
 #
-# Keep this empty by default. The Flatpak installer still configures Flathub,
-# but no desktop applications are installed unless I uncomment or add app IDs.
+# VS Code is the default GUI editor. It is installed as a Flatpak instead of as
+# a host apt package or inside every project Distrobox.
+com.visualstudio.code
 #
 # Examples:
 # com.github.tchx84.Flatseal

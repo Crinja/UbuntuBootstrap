@@ -19,17 +19,12 @@ cd ~/UbuntuBootstrap
 source ~/.bashrc
 ```
 
-Confirm shared AI state folders exist:
-
-```bash
-test -d ~/Boxes/ai-state/claude
-test -d ~/Boxes/ai-state/codex
-```
-
 Project smoke test:
 
 ```bash
 ws-new rust ExampleProject
+flatpak info com.visualstudio.code
+ws-code ExampleProject
 ws-enter ExampleProject
 cd ~/project
 cargo init --bin

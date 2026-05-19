@@ -176,12 +176,6 @@ safe_remove_dir_under() {
   esac
 }
 
-ensure_ai_state_dirs() {
-  ensure_dir "${HOME}/Boxes/ai-state"
-  ensure_dir "${HOME}/Boxes/ai-state/claude"
-  ensure_dir "${HOME}/Boxes/ai-state/codex"
-}
-
 find_project_dir_by_normalized_name() {
   local requested="$1"
   local normalized_requested

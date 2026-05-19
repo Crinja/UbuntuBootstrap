@@ -116,6 +116,24 @@ current `ws-new` script or manually mount `~/Boxes/ai-state` at `/work/ai-state`
 
 Shared auth/config state is under `~/Boxes/ai-state`.
 
+If Claude prints:
+
+```text
+claude configuration file not found at: ~/.claude.json
+A backup file exists at: ~/.claude/backups/.claude.json.backup.<timestamp>
+```
+
+repair the project state by re-running:
+
+```bash
+ws-ai-add ExampleProject --claude
+```
+
+The setup script links `~/.claude.json` to the shared Claude state file and, if
+that shared file does not exist yet, restores the newest Claude backup. If it
+warns that `~/.claude` or `~/.claude.json` already exists and was not replaced,
+move the local file or directory aside manually before re-running the command.
+
 ## VM Instead
 
 Use a VM for untrusted software, Windows-only tools, kernel modules, or anything

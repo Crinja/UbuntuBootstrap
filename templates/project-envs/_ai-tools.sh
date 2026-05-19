@@ -51,6 +51,64 @@ WARN: ${link_path} already exists and was not replaced.
 EOF
 }
 
+link_state_file() {
+  local link_path="$1"
+  local target_path="$2"
+
+  mkdir -p "$(dirname "$target_path")"
+
+  if [[ ! -e "$target_path" && ! -L "$target_path" ]]; then
+    if [[ -f "$link_path" && ! -L "$link_path" ]]; then
+      cp "$link_path" "$target_path"
+    else
+      printf '{}\n' >"$target_path"
+    fi
+  fi
+
+  if [[ -L "$link_path" && "$(readlink "$link_path")" == "$target_path" ]]; then
+    return 0
+  fi
+
+  if [[ ! -e "$link_path" && ! -L "$link_path" ]]; then
+    ln -s "$target_path" "$link_path"
+    return 0
+  fi
+
+  cat >&2 <<EOF
+WARN: ${link_path} already exists and was not replaced.
+      Shared AI file state for this tool will not be linked automatically.
+      Move it aside manually if you want to use ${target_path}.
+EOF
+}
+
+restore_claude_json_from_backup() {
+  local target_path="$1"
+  local latest_backup=""
+  local candidate
+
+  if [[ -e "$target_path" || -L "$target_path" ]]; then
+    return 0
+  fi
+
+  if [[ -f "${HOME}/.claude.json" && ! -L "${HOME}/.claude.json" ]]; then
+    cp "${HOME}/.claude.json" "$target_path"
+    return 0
+  fi
+
+  shopt -s nullglob
+  for candidate in "${HOME}/.claude"/backups/.claude.json.backup.*; do
+    if [[ -z "$latest_backup" || "$candidate" -nt "$latest_backup" ]]; then
+      latest_backup="$candidate"
+    fi
+  done
+  shopt -u nullglob
+
+  if [[ -n "$latest_backup" ]]; then
+    cp "$latest_backup" "$target_path"
+    echo "Restored Claude config from backup: ${latest_backup}"
+  fi
+}
+
 install_node_for_ai_tools() {
   sudo apt-get update
   sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -95,6 +153,8 @@ install_node_for_ai_tools
 
 if [[ "$WS_INSTALL_CLAUDE" == "1" ]]; then
   link_state_dir "${HOME}/.claude" /work/ai-state/claude
+  restore_claude_json_from_backup /work/ai-state/claude/.claude.json
+  link_state_file "${HOME}/.claude.json" /work/ai-state/claude/.claude.json
   npm install -g @anthropic-ai/claude-code
   command -v claude >/dev/null 2>&1 && claude --version || true
 fi

@@ -52,4 +52,16 @@ Project boxes mount that state at:
 /work/ai-state/codex
 ```
 
+For Claude, setup links both pieces of state inside each opted-in project box:
+
+```text
+~/.claude      -> /work/ai-state/claude
+~/.claude.json -> /work/ai-state/claude/.claude.json
+```
+
+If Claude has moved a missing or invalid config into
+`~/.claude/backups/.claude.json.backup.*`, re-running `ws-ai-add <project>
+--claude` restores the newest backup into the shared state file when no shared
+Claude config exists yet.
+
 Do not commit keys, tokens, `.env` files, or local agent settings.

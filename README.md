@@ -47,6 +47,8 @@ Host installs:
 AI state:
 
 - Shared Claude state lives under `~/Boxes/ai-state/claude`.
+- Claude project boxes link both `~/.claude` and `~/.claude.json` into that
+  shared state.
 - Shared Codex state lives under `~/Boxes/ai-state/codex`.
 - Claude Code and Codex CLI are not installed by default.
 

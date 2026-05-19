@@ -27,3 +27,6 @@ wrong layer.
 
 Docker is only installed inside a project Distrobox when I pass
 `--with-docker`.
+
+Claude Code and Codex CLI are only installed inside a project Distrobox when I
+pass `--with-claude`, `--with-codex`, `--with-ai`, or run `ws-ai-add`.

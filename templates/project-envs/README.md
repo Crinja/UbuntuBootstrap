@@ -9,6 +9,9 @@ VS Code is part of the baseline by default. Use `--no-ide` to skip it.
 
 `_docker.sh` is optional and runs only when `ws-new` receives `--with-docker`.
 
+`_ai-tools.sh` is optional and runs only when `ws-new` receives
+`--with-claude`, `--with-codex`, or `--with-ai`, or when `ws-ai-add` is used.
+
 Templates:
 
 - `rust`

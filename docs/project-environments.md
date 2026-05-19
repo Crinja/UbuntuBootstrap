@@ -61,6 +61,17 @@ ws-new node WebApp --with-devcontainer --with-docker
 
 That installs Docker/Compose tooling inside that project Distrobox only.
 
+Claude Code and Codex CLI are also opt-in per project:
+
+```bash
+ws-new rust AgentProject --with-claude
+ws-new node AgentWeb --with-ai
+ws-ai-add ExampleProject --codex
+```
+
+AI auth/config state is shared through `~/Boxes/ai-state`, but the CLI binaries
+live inside whichever project boxes I explicitly enable.
+
 Available templates:
 
 - `rust`

@@ -1,53 +1,55 @@
 # AI Coding Agents
 
-Claude Code and Codex CLI live in separate tool boxes:
+Claude Code and Codex CLI are project-local opt-ins.
 
-- `claude-code`
-- `codex`
+They are not installed on the host and not installed in every project box. When
+enabled, the CLI binary lives inside that project Distrobox, so commands run in
+the same environment as the project toolchain.
 
-They are not installed on the host and not duplicated into every project box.
-
-Setup:
-
-```bash
-ws-ai-setup
-```
-
-Run against a project:
+Create a project with AI tools:
 
 ```bash
-ws-claude ExampleProject
-ws-codex ExampleProject
+ws-new rust AgentProject --with-claude
+ws-new node AgentWeb --with-ai
 ```
 
-Behavior:
+Add AI tools later:
 
-- `ws-enter`, `ws-claude`, and `ws-codex` add `~/.local/share/ws-ai/bin` to the
-  project shell PATH.
-- That bin provides lightweight `claude` and `codex` wrappers.
-- The real CLI and auth state still live in `claude-code` or `codex`.
-- Shell commands spawned by the AI tool are routed back through the project
-  Distrobox, so the project toolchain is the normal command context.
+```bash
+ws-ai-add ExampleProject --claude
+ws-ai-add ExampleProject --codex
+ws-ai-add ExampleProject --all
+```
+
+Run inside a project:
+
+```bash
+ws-enter ExampleProject
+claude
+codex
+```
 
 Useful check:
 
 ```bash
 ws-enter ExampleProject
 command -v claude
+command -v codex
 cargo --version
 ```
 
-Then:
-
-```bash
-ws-claude ExampleProject
-```
-
-Agent state lives under:
+Shared state lives under:
 
 ```text
-~/Boxes/claude-code
-~/Boxes/codex
+~/Boxes/ai-state/claude
+~/Boxes/ai-state/codex
+```
+
+Project boxes mount that state at:
+
+```text
+/work/ai-state/claude
+/work/ai-state/codex
 ```
 
 Do not commit keys, tokens, `.env` files, or local agent settings.

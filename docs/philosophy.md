@@ -11,8 +11,8 @@ Layers:
 - Flatpak: optional GUI apps.
 - Project Distrobox: normal development work.
 - Project Docker: opt-in only, for repos that need devcontainers or Compose.
-- `claude-code`: Claude Code box.
-- `codex`: Codex CLI box.
+- Project AI tools: opt-in Claude/Codex installs inside project boxes.
+- Shared AI state: auth/config under `~/Boxes/ai-state`.
 - VM: untrusted, incompatible, or system-level experiments.
 
 Flatpak app installation is opt-in. `config/flatpaks.txt` starts empty.

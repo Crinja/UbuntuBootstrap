@@ -20,6 +20,9 @@ Options:
   --image <image>          Container image to use. Default: ubuntu:24.04
   --with-devcontainer      Copy matching templates/devcontainer/<template>/ files
   --with-docker            Install Docker/Compose tooling inside the project box
+  --with-claude            Install Claude Code inside the project box
+  --with-codex             Install Codex CLI inside the project box
+  --with-ai                Install both Claude Code and Codex CLI
   --force                  Allow overwriting generated .devcontainer
   --no-ide                 Do not install VS Code in the project box
   --no-template-run        Create the box but skip running the project template
@@ -28,6 +31,7 @@ Options:
 Examples:
   ./scripts/create-project-env.sh rust ExampleProject
   ./scripts/create-project-env.sh dotnet HackJack --with-devcontainer --with-docker
+  ./scripts/create-project-env.sh rust AgentProject --with-claude
   ./scripts/create-project-env.sh node CSIT314-TalentMatching
   ./scripts/create-project-env.sh cpp EngineExperiment
 EOF
@@ -80,6 +84,8 @@ devcontainer_template_name() {
 image="ubuntu:24.04"
 with_devcontainer=0
 install_docker=0
+install_claude=0
+install_codex=0
 force=0
 run_template=1
 install_vscode=1
@@ -121,6 +127,19 @@ while [[ $# -gt 0 ]]; do
       install_docker=1
       shift
       ;;
+    --with-claude)
+      install_claude=1
+      shift
+      ;;
+    --with-codex)
+      install_codex=1
+      shift
+      ;;
+    --with-ai)
+      install_claude=1
+      install_codex=1
+      shift
+      ;;
     --force)
       force=1
       shift
@@ -154,11 +173,16 @@ section "Project environment creation"
 template_script="${REPO_ROOT}/templates/project-envs/${template}.sh"
 project_baseline_template="${REPO_ROOT}/templates/project-envs/_project-baseline.sh"
 docker_template="${REPO_ROOT}/templates/project-envs/_docker.sh"
+ai_template="${REPO_ROOT}/templates/project-envs/_ai-tools.sh"
 [[ -f "$template_script" ]] || die "Unknown project template '$template'. Expected $template_script"
 [[ -f "$project_baseline_template" ]] || die "Missing project baseline template: $project_baseline_template"
 
 if [[ "$install_docker" -eq 1 ]]; then
   [[ -f "$docker_template" ]] || die "Missing Docker template: $docker_template"
+fi
+
+if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
+  [[ -f "$ai_template" ]] || die "Missing AI tools template: $ai_template"
 fi
 
 normalized_project="$(normalize_project_name "$project_name")"
@@ -187,9 +211,21 @@ if [[ "$install_docker" -eq 1 ]]; then
 else
   log "Container tooling: skipped; pass --with-docker to install Docker in this project box"
 fi
+if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
+  if [[ "$install_claude" -eq 1 && "$install_codex" -eq 1 ]]; then
+    log "AI tooling: Claude Code and Codex CLI will be installed inside the project box"
+  elif [[ "$install_claude" -eq 1 ]]; then
+    log "AI tooling: Claude Code will be installed inside the project box"
+  else
+    log "AI tooling: Codex CLI will be installed inside the project box"
+  fi
+else
+  log "AI tooling: skipped; pass --with-claude, --with-codex, or --with-ai"
+fi
 
 ensure_dir "$project_dir"
 ensure_dir "$box_home"
+ensure_ai_state_dirs
 
 if ! command_exists distrobox-create && [[ "${WS_DRY_RUN}" != "1" ]]; then
   die "distrobox-create is not installed. Run ./bootstrap.sh first."
@@ -208,17 +244,14 @@ else
     --image "$image" \
     --home "$box_home" \
     --volume "${project_dir}:${project_mount}:rw" \
+    --volume "${HOME}/Boxes/ai-state:/work/ai-state:rw" \
     --yes
 fi
 
 if [[ "$run_template" -eq 1 ]]; then
   log "Running project baseline and '$template' template inside '$box_name'."
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
-    if [[ "$install_docker" -eq 1 ]]; then
-      log "Would run ${project_baseline_template}, ${docker_template}, and ${template_script} inside ${box_name}."
-    else
-      log "Would run ${project_baseline_template} and ${template_script} inside ${box_name}."
-    fi
+    log "Would run ${project_baseline_template}, optional add-ons, and ${template_script} inside ${box_name}."
   else
     {
       cat "$project_baseline_template"
@@ -229,6 +262,13 @@ if [[ "$run_template" -eq 1 ]]; then
       fi
       cat "$template_script"
     } | distrobox-enter --name "$box_name" -- env WS_INSTALL_VSCODE="$install_vscode" bash -s -- "$project_mount" "$project_name"
+
+    if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
+      distrobox-enter --name "$box_name" -- env \
+        WS_INSTALL_CLAUDE="$install_claude" \
+        WS_INSTALL_CODEX="$install_codex" \
+        bash -s -- "$project_mount" "$project_name" < "$ai_template"
+    fi
   fi
 else
   log "Skipping template run because --no-template-run was passed."
@@ -283,4 +323,13 @@ Docker/Compose was requested for this project box. After entering the box, check
 
 If group membership changed, exit and re-enter the Distrobox before using Docker.
 EOF
+fi
+
+if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
+  cat <<'EOF'
+
+AI tools were requested for this project box. After entering the box, check:
+EOF
+  [[ "$install_claude" -eq 1 ]] && printf '  claude --version\n'
+  [[ "$install_codex" -eq 1 ]] && printf '  codex --version\n'
 fi

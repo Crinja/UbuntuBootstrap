@@ -19,11 +19,11 @@ cd ~/UbuntuBootstrap
 source ~/.bashrc
 ```
 
-Confirm the AI tool boxes:
+Confirm shared AI state folders exist:
 
 ```bash
-distrobox-enter --name claude-code -- bash -lc 'command -v claude'
-distrobox-enter --name codex -- bash -lc 'command -v codex'
+test -d ~/Boxes/ai-state/claude
+test -d ~/Boxes/ai-state/codex
 ```
 
 Project smoke test:
@@ -72,4 +72,14 @@ docker --version
 docker compose version
 exit
 command -v docker && echo "unexpected host docker" || echo "no host docker"
+```
+
+Optional AI smoke test:
+
+```bash
+ws-ai-add ExampleProject --claude
+ws-enter ExampleProject
+command -v claude
+exit
+command -v claude && echo "unexpected host claude" || echo "no host claude"
 ```

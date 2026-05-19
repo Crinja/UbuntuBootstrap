@@ -12,7 +12,7 @@ usage() {
 Usage:
   ./scripts/verify.sh
 
-Checks host tools, folders, tool boxes, optional Flatpaks, wrappers, and Bash integration.
+Checks host tools, folders, shared AI state, optional Flatpaks, wrappers, and Bash integration.
 EOF
 }
 
@@ -81,23 +81,14 @@ for folder in \
   "${HOME}/Projects" \
   "${HOME}/Boxes" \
   "${HOME}/Boxes/projects" \
+  "${HOME}/Boxes/ai-state" \
+  "${HOME}/Boxes/ai-state/claude" \
+  "${HOME}/Boxes/ai-state/codex" \
   "${HOME}/VMs" \
   "${HOME}/Scratch" \
   "${HOME}/Downloads/Quarantine"; do
   check_path "$folder"
 done
-
-if command_exists distrobox-list; then
-  while IFS='|' read -r name _image _home_path; do
-    if distrobox_exists "$name"; then
-      check_pass "tool Distrobox exists: $name"
-    else
-      check_fail "tool Distrobox exists: $name"
-    fi
-  done < <(read_config_lines "${REPO_ROOT}/config/tool-boxes.conf")
-else
-  check_fail "tool Distrobox status available"
-fi
 
 mapfile -t configured_flatpaks < <(read_config_lines "${REPO_ROOT}/config/flatpaks.txt")
 
@@ -115,7 +106,7 @@ else
   check_fail "Flatpak app status available"
 fi
 
-for wrapper in ws-new ws-enter ws-code ws-ai-setup ws-claude ws-codex ws-list ws-remove ws-help; do
+for wrapper in ws-new ws-enter ws-code ws-ai-add ws-list ws-remove ws-help; do
   if [[ -x "${REPO_ROOT}/bin/${wrapper}" ]]; then
     check_pass "wrapper executable: $wrapper"
   else

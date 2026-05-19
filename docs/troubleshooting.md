@@ -85,15 +85,14 @@ repo needs unusual daemon, kernel, networking, or privileged behavior.
 
 ## AI Tools
 
-Repair the AI tool boxes:
+Add an AI tool to a project:
 
 ```bash
-ws-ai-setup
-distrobox-enter --name claude-code -- bash -lc 'command -v claude'
-distrobox-enter --name codex -- bash -lc 'command -v codex'
+ws-ai-add ExampleProject --claude
+ws-ai-add ExampleProject --codex
 ```
 
-Check the project shell directly:
+Check the project shell:
 
 ```bash
 ws-enter ExampleProject
@@ -101,32 +100,21 @@ pwd
 command -v claude
 command -v codex
 cargo --version
-command -v distrobox-host-exec
 ```
 
-Check the AI wrappers:
+Run the project-local tools after entering the project:
 
 ```bash
-ws-claude ExampleProject --help
-ws-codex ExampleProject --help
+ws-enter ExampleProject
+claude --help
+codex --help
 ```
 
-Check host integration from the tool boxes:
+If `ws-ai-add` says `/work/ai-state` is missing, the project box was probably
+created before shared AI state was added. Recreate the project box with the
+current `ws-new` script or manually mount `~/Boxes/ai-state` at `/work/ai-state`.
 
-```bash
-distrobox-enter --name claude-code -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
-distrobox-enter --name codex -- bash -lc 'command -v distrobox-host-exec && distrobox-host-exec --yes true'
-```
-
-Do not install the Ubuntu `distrobox` package inside the AI tool boxes. It can
-conflict with Distrobox-managed files injected from the host.
-
-If I accidentally tried that and dpkg is wedged:
-
-```bash
-distrobox-enter --name claude-code -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
-distrobox-enter --name codex -- bash -lc 'sudo dpkg --remove --force-remove-reinstreq distrobox 2>/dev/null || true; sudo apt-get -f install; sudo dpkg --configure -a'
-```
+Shared auth/config state is under `~/Boxes/ai-state`.
 
 ## VM Instead
 

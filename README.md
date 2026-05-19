@@ -44,13 +44,11 @@ Host installs:
 - VM/snapshot tools.
 - `ws-*` shell helpers.
 
-Tool boxes:
+AI state:
 
-- `claude-code` for Claude Code.
-- `codex` for Codex CLI.
-
-No other always-on Distroboxes are created. Extra task boxes can be added
-manually later when I actually need them.
+- Shared Claude state lives under `~/Boxes/ai-state/claude`.
+- Shared Codex state lives under `~/Boxes/ai-state/codex`.
+- Claude Code and Codex CLI are not installed by default.
 
 Project boxes:
 
@@ -67,6 +65,14 @@ Docker is opt-in per project for devcontainer-heavy repos:
 
 ```bash
 ws-new node WebApp --with-devcontainer --with-docker
+```
+
+AI tools are also opt-in per project:
+
+```bash
+ws-new rust AgentProject --with-claude
+ws-new node AgentWeb --with-ai
+ws-ai-add ExampleProject --codex
 ```
 
 Creates:
@@ -89,6 +95,7 @@ ws-new rust ExampleProject
 ws-new node CSIT314-TalentMatching
 ws-new dotnet HackJack --with-devcontainer --with-docker
 ws-new python HeadlessScript --no-ide
+ws-new rust AgentProject --with-claude
 
 ws-enter ExampleProject
 ws-code ExampleProject
@@ -99,23 +106,22 @@ ws-remove ExampleProject
 AI tools:
 
 ```bash
-ws-ai-setup
-ws-claude ExampleProject
-ws-codex ExampleProject
+ws-ai-add ExampleProject --claude
+ws-enter ExampleProject
+claude
+codex
 ```
 
-`ws-enter`, `ws-claude`, and `ws-codex` inject `~/.local/share/ws-ai/bin` into
-the project shell PATH. That bin provides lightweight `claude` and `codex`
-wrappers. The real AI auth state stays in `claude-code` or `codex`, while shell
-commands run through the project box.
+Claude and Codex run directly inside the selected project Distrobox. Auth/config
+state is shared through `~/Boxes/ai-state`.
 
 ## Layout
 
 ```text
 ~/Projects/<project>
 ~/Boxes/projects/<project>
-~/Boxes/claude-code
-~/Boxes/codex
+~/Boxes/ai-state/claude
+~/Boxes/ai-state/codex
 ~/VMs
 ~/Scratch
 ~/Downloads/Quarantine
@@ -127,6 +133,8 @@ commands run through the project box.
 - No VS Code on the host.
 - No Docker on the host by default; use Podman on the host and `--with-docker`
   only for project boxes that need it.
+- No Claude Code or Codex CLI on the host. Add them per project with
+  `--with-claude`, `--with-codex`, `--with-ai`, or `ws-ai-add`.
 - GUI apps should usually be Flatpaks, but none are installed by default.
 - Distrobox is for cleanliness and workflow separation, not malware isolation.
 - Use a VM for genuinely untrusted or weird system-level software.

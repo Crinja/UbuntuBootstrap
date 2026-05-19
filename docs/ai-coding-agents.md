@@ -22,8 +22,9 @@ ws-codex ExampleProject
 
 Behavior:
 
-- `ws-claude` enters the project Distrobox, then exposes a `claude` launcher.
-- `ws-codex` enters the project Distrobox, then exposes a `codex` launcher.
+- `ws-enter`, `ws-claude`, and `ws-codex` add `~/.local/share/ws-ai/bin` to the
+  project shell PATH.
+- That bin provides lightweight `claude` and `codex` wrappers.
 - The real CLI and auth state still live in `claude-code` or `codex`.
 - Shell commands spawned by the AI tool are routed back through the project
   Distrobox, so the project toolchain is the normal command context.
@@ -32,6 +33,7 @@ Useful check:
 
 ```bash
 ws-enter ExampleProject
+command -v claude
 cargo --version
 ```
 

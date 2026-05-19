@@ -21,6 +21,7 @@ sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
   openssh-client \
   ripgrep \
   shellcheck \
+  tar \
   tree \
   unzip \
   wget \

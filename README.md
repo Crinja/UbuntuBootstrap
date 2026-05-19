@@ -104,9 +104,10 @@ ws-claude ExampleProject
 ws-codex ExampleProject
 ```
 
-`ws-claude` and `ws-codex` enter the project Distrobox first, then expose a
-temporary launcher for the AI CLI from its tool box. The AI auth state stays in
-`claude-code` or `codex`, while shell commands run through the project box.
+`ws-enter`, `ws-claude`, and `ws-codex` inject `~/.local/share/ws-ai/bin` into
+the project shell PATH. That bin provides lightweight `claude` and `codex`
+wrappers. The real AI auth state stays in `claude-code` or `codex`, while shell
+commands run through the project box.
 
 ## Layout
 

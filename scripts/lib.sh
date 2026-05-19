@@ -176,6 +176,29 @@ safe_remove_dir_under() {
   esac
 }
 
+sync_ai_bin_to_box() {
+  local box_name="$1"
+  local source_dir="${REPO_ROOT}/scripts/ai-bin"
+
+  [[ -d "$source_dir" ]] || die "Missing AI bin source: $source_dir"
+
+  if [[ "${WS_DRY_RUN}" == "1" ]]; then
+    log "Would sync ${source_dir} into ${box_name}:~/.local/share/ws-ai/bin"
+    return 0
+  fi
+
+  command_exists tar || die "tar is required."
+
+  tar -C "$source_dir" -cf - . |
+    distrobox-enter --name "$box_name" -- bash -lc '
+      set -euo pipefail
+      install_dir="${HOME}/.local/share/ws-ai/bin"
+      mkdir -p "$install_dir"
+      tar -C "$install_dir" -xf -
+      find "$install_dir" -maxdepth 1 -type f -exec chmod +x {} +
+    '
+}
+
 find_project_dir_by_normalized_name() {
   local requested="$1"
   local normalized_requested

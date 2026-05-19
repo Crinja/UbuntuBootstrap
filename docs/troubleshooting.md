@@ -98,11 +98,13 @@ Check the project shell directly:
 ```bash
 ws-enter ExampleProject
 pwd
+command -v claude
+command -v codex
 cargo --version
 command -v distrobox-host-exec
 ```
 
-Check an AI launcher:
+Check the AI wrappers:
 
 ```bash
 ws-claude ExampleProject --help

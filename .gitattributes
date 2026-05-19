@@ -4,6 +4,7 @@
 *.sh text eol=lf
 bootstrap.sh text eol=lf
 bin/ws-* text eol=lf
+scripts/ai-bin/* text eol=lf
 dotfiles/bashrc.append text eol=lf
 config/*.conf text eol=lf
 config/*.txt text eol=lf

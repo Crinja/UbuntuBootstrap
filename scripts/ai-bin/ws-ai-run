@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Project-side AI launcher. This runs inside a project Distrobox.
+
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  printf 'Usage: ws-ai-run <claude|codex> [args...]\n' >&2
+  exit 2
+fi
+
+tool_name="$1"
+shift
+
+case "$tool_name" in
+  claude)
+    ai_box_name="${WS_AI_CLAUDE_BOX:-claude-code}"
+    ;;
+  codex)
+    ai_box_name="${WS_AI_CODEX_BOX:-codex}"
+    ;;
+  *)
+    printf 'ERROR: unknown AI tool: %s\n' "$tool_name" >&2
+    exit 2
+    ;;
+esac
+
+if ! command -v distrobox-host-exec >/dev/null 2>&1; then
+  printf 'ERROR: distrobox-host-exec is not available inside the project box; cannot launch %s from %s.\n' "$tool_name" "$ai_box_name" >&2
+  exit 127
+fi
+
+: "${WS_AI_PROJECT_ROOT:?}"
+: "${WS_PROJECT_BOX_NAME:?}"
+: "${WS_PROJECT_BOX_ROOT:?}"
+
+current_dir="$(pwd)"
+
+case "$current_dir" in
+  "$WS_PROJECT_BOX_ROOT")
+    ai_dir="$WS_AI_PROJECT_ROOT"
+    ;;
+  "$WS_PROJECT_BOX_ROOT"/*)
+    relative_dir="${current_dir#"$WS_PROJECT_BOX_ROOT"/}"
+    ai_dir="${WS_AI_PROJECT_ROOT}/${relative_dir}"
+    ;;
+  *)
+    ai_dir="$WS_AI_PROJECT_ROOT"
+    ;;
+esac
+
+exec distrobox-host-exec distrobox-enter --name "$ai_box_name" -- env \
+  -u BASH_ENV \
+  -u ENV \
+  WS_AI_PROJECT_ROOT="$WS_AI_PROJECT_ROOT" \
+  WS_AI_START_DIR="$ai_dir" \
+  WS_AI_TOOL_NAME="$tool_name" \
+  WS_PROJECT_BOX_NAME="$WS_PROJECT_BOX_NAME" \
+  WS_PROJECT_BOX_ROOT="$WS_PROJECT_BOX_ROOT" \
+  bash -lc '
+    set -euo pipefail
+
+    tool_name="${WS_AI_TOOL_NAME:?}"
+    start_dir="${WS_AI_START_DIR:?}"
+    project_shell="${HOME}/.local/share/ws-ai/bin/ws-ai-project-shell"
+
+    if [ -s "${HOME}/.nvm/nvm.sh" ]; then
+      . "${HOME}/.nvm/nvm.sh"
+      nvm use default --silent >/dev/null 2>&1 || nvm use --lts --silent >/dev/null 2>&1 || true
+    fi
+
+    if [ ! -x "$project_shell" ]; then
+      printf "ERROR: project shell bridge is missing inside this AI tool box: %s\n" "$project_shell" >&2
+      exit 127
+    fi
+
+    if ! tool_path="$(command -v "$tool_name")"; then
+      printf "ERROR: %s was not found inside its AI tool box. Run: ws-ai-setup\n" "$tool_name" >&2
+      exit 127
+    fi
+
+    export SHELL="$project_shell"
+    unset BASH_ENV ENV
+
+    cd "$start_dir" || exit 1
+
+    node_path="$(command -v node || true)"
+    first_line="$(head -n 1 "$tool_path" 2>/dev/null || true)"
+
+    case "$first_line" in
+      *node*)
+        if [ -z "$node_path" ]; then
+          printf "ERROR: %s needs Node inside its AI tool box, but node was not found. Run: ws-ai-setup\n" "$tool_name" >&2
+          exit 127
+        fi
+        exec "$node_path" "$tool_path" "$@"
+        ;;
+      *)
+        exec "$tool_path" "$@"
+        ;;
+    esac
+  ' _ "$@"

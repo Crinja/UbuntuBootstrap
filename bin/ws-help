@@ -11,7 +11,7 @@ Common commands:
       Use --with-docker for project-local Docker/Compose tooling.
 
   ws-enter <project-name>
-      Enter the project Distrobox and start in the project folder.
+      Enter the project Distrobox with AI wrappers injected into PATH.
 
   ws-list
       List project environments.

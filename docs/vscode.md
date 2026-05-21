@@ -31,7 +31,8 @@ toolchain available.
 
 When a project is created or updated with `--with-docker`, `ws-code` creates
 project-local Docker bridge scripts and points the Dev Containers extension at
-them:
+them. The bridge runs Docker inside the project Distrobox and translates the
+host workspace path to the `/work/<project>` mount used inside that box:
 
 ```text
 ~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker

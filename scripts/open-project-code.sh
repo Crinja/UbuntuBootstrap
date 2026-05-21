@@ -106,40 +106,81 @@ EOF
   mv "$tmp_file" "$settings_file"
 }
 
+shell_quote() {
+  local value="$1"
+
+  printf "'"
+  printf '%s' "$value" | sed "s/'/'\\\\''/g"
+  printf "'"
+}
+
 write_project_docker_bridge() {
   local bridge_dir="$1"
   local box_name="$2"
+  local project_dir="$3"
+  local project_mount="$4"
+  local quoted_box_name
+  local quoted_project_dir
+  local quoted_project_mount
+  local quoted_runner
 
   mkdir -p "$bridge_dir"
+
+  quoted_box_name="$(shell_quote "$box_name")"
+  quoted_project_dir="$(shell_quote "$project_dir")"
+  quoted_project_mount="$(shell_quote "$project_mount")"
+  quoted_runner="$(shell_quote "${bridge_dir}/docker-bridge-runner")"
+
+  cat >"${bridge_dir}/docker-bridge-runner" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+box_name=${quoted_box_name}
+host_project_dir=${quoted_project_dir}
+project_mount=${quoted_project_mount}
+docker_command="\${1:?missing docker command}"
+shift
+
+args=()
+for arg in "\$@"; do
+  args+=("\${arg//\${host_project_dir}/\${project_mount}}")
+done
+
+case "\$docker_command" in
+  docker)
+    exec /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc 'cd "\$1"; shift; exec docker "\$@"' docker "\$project_mount" "\${args[@]}"
+    ;;
+  docker-compose)
+    exec /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc 'cd "\$1"; shift; if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$project_mount" "\${args[@]}"
+    ;;
+  *)
+    printf 'Unsupported Docker bridge command: %s\n' "\$docker_command" >&2
+    exit 64
+    ;;
+esac
+EOF
 
   cat >"${bridge_dir}/docker" <<EOF
 #!/bin/sh
 set -eu
+runner=${quoted_runner}
 if [ -f /.flatpak-info ]; then
-  exec /usr/bin/flatpak-spawn --host /usr/bin/distrobox-enter --name "$box_name" -- docker "\$@"
+  exec /usr/bin/flatpak-spawn --host /usr/bin/env bash "\$runner" docker "\$@"
 fi
-if command -v distrobox-enter >/dev/null 2>&1; then
-  exec distrobox-enter --name "$box_name" -- docker "\$@"
-fi
-exec docker "\$@"
+exec /usr/bin/env bash "\$runner" docker "\$@"
 EOF
 
   cat >"${bridge_dir}/docker-compose" <<EOF
 #!/bin/sh
 set -eu
+runner=${quoted_runner}
 if [ -f /.flatpak-info ]; then
-  exec /usr/bin/flatpak-spawn --host /usr/bin/distrobox-enter --name "$box_name" -- bash -lc 'if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$@"
+  exec /usr/bin/flatpak-spawn --host /usr/bin/env bash "\$runner" docker-compose "\$@"
 fi
-if command -v distrobox-enter >/dev/null 2>&1; then
-  exec distrobox-enter --name "$box_name" -- bash -lc 'if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$@"
-fi
-if command -v docker-compose >/dev/null 2>&1; then
-  exec docker-compose "\$@"
-fi
-exec docker compose "\$@"
+exec /usr/bin/env bash "\$runner" docker-compose "\$@"
 EOF
 
-  chmod +x "${bridge_dir}/docker" "${bridge_dir}/docker-compose"
+  chmod +x "${bridge_dir}/docker-bridge-runner" "${bridge_dir}/docker" "${bridge_dir}/docker-compose"
 }
 
 if [[ $# -eq 0 ]]; then
@@ -218,7 +259,7 @@ enable_docker_bridge=0
 
 if [[ -f "$docker_bridge_marker" ]]; then
   enable_docker_bridge=1
-  write_project_docker_bridge "$code_bridge_dir" "$box_name"
+  write_project_docker_bridge "$code_bridge_dir" "$box_name" "$project_dir" "$project_mount"
 fi
 
 write_project_code_settings \

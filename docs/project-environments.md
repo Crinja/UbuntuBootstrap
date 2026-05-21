@@ -27,7 +27,7 @@ Names are normalized for Distrobox:
 
 ```text
 ExampleProject -> project-exampleproject
-CSIT314-TalentMatching -> project-csit314-talentmatching
+WebExample -> project-webexample
 ```
 
 Common flow:

@@ -100,8 +100,8 @@ manual until I add their app IDs.
 
 ```bash
 ws-new rust ExampleProject
-ws-new node CSIT314-TalentMatching
-ws-new dotnet HackJack --with-devcontainer --with-docker
+ws-new node WebExample
+ws-new dotnet ApiExample --with-devcontainer --with-docker
 ws-new python HeadlessScript
 ws-new rust AgentProject --with-claude
 

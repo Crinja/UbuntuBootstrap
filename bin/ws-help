@@ -31,9 +31,9 @@ Templates:
 
 Examples:
   ws-new rust ExampleProject
-  ws-new dotnet HackJack --with-devcontainer --with-docker
+  ws-new dotnet ApiExample --with-devcontainer --with-docker
   ws-new rust AgentProject --with-claude
-  ws-new node CSIT314-TalentMatching
+  ws-new node WebExample
   ws-new python HeadlessScript
   ws-new cpp EngineExperiment
   ws-new rust-nightly CompilerExperiment

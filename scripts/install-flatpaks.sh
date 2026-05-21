@@ -13,8 +13,34 @@ Usage:
   ./scripts/install-flatpaks.sh [--dry-run]
 
 Ensures Flathub exists and installs configured Flatpak applications.
-The default config is empty, so this normally installs no apps.
+The default config installs VS Code only. Add more app IDs to config/flatpaks.txt.
 EOF
+}
+
+flatpak_is_configured() {
+  local wanted="$1"
+  local app_id
+
+  for app_id in "${flatpaks[@]:-}"; do
+    if [[ "$app_id" == "$wanted" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+configure_vscode_flatpak_permissions() {
+  local app_id="com.visualstudio.code"
+
+  flatpak_is_configured "$app_id" || return 0
+
+  if [[ "${WS_DRY_RUN}" != "1" ]] && ! flatpak info "$app_id" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log "Allowing VS Code Flatpak to use flatpak-spawn --host for project Distrobox integration."
+  run flatpak override --user --talk-name=org.freedesktop.Flatpak "$app_id"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -32,6 +58,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+flatpaks=()
 
 section "Flatpak setup"
 if ! command_exists flatpak; then
@@ -66,5 +94,7 @@ for app_id in "${flatpaks[@]}"; do
     run flatpak install -y flathub "$app_id"
   fi
 done
+
+configure_vscode_flatpak_permissions
 
 log "Flatpak setup complete. Some apps may appear after logging out and back in."

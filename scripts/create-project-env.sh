@@ -30,9 +30,9 @@ Options:
 
 Examples:
   ./scripts/create-project-env.sh rust ExampleProject
-  ./scripts/create-project-env.sh dotnet HackJack --with-devcontainer --with-docker
+  ./scripts/create-project-env.sh dotnet ApiExample --with-devcontainer --with-docker
   ./scripts/create-project-env.sh rust AgentProject --with-claude
-  ./scripts/create-project-env.sh node CSIT314-TalentMatching
+  ./scripts/create-project-env.sh node WebExample
   ./scripts/create-project-env.sh cpp EngineExperiment
 EOF
 }
@@ -139,6 +139,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --with-docker)
+      install_docker=1
+      shift
+      ;;
+    --wth-docker)
+      warn "Assuming you meant --with-docker."
       install_docker=1
       shift
       ;;

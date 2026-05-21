@@ -107,6 +107,7 @@ ws-new rust AgentProject --with-claude
 
 ws-enter ExampleProject
 ws-code ExampleProject
+ws-docker-start ExampleProject
 ws-list
 ws-remove ExampleProject
 ```

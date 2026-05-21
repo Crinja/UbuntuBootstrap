@@ -338,13 +338,16 @@ A convenience symlink is also created at:
 EOF
 
 if [[ "$install_docker" -eq 1 ]]; then
-  cat <<'EOF'
+  cat <<EOF
 
 Docker/Compose was requested for this project box. After entering the box, check:
   docker --version
   docker compose version
 
 If group membership changed, exit and re-enter the Distrobox before using Docker.
+
+If Docker reports that /var/run/docker.sock does not exist, start the daemon with:
+  ws-docker-start ${project_name}
 
 The next ws-code launch will configure project-local Docker bridge settings for
 the VS Code Dev Containers extension.

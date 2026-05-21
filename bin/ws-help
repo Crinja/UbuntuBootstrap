@@ -23,6 +23,9 @@ Common commands:
       Launch the VS Code Flatpak with project-specific settings/extensions.
       Integrated terminals enter the matching project Distrobox.
 
+  ws-docker-start <project-name>
+      Start/check Docker inside a project box created with --with-docker.
+
   ws-ai-add <project-name> --claude|--codex|--all
       Add project-local Claude Code and/or Codex CLI to an existing project box.
 
@@ -39,6 +42,7 @@ Examples:
   ws-new rust-nightly CompilerExperiment
   ws-enter ExampleProject
   ws-code ExampleProject
+  ws-docker-start ExampleProject
   ws-ai-add ExampleProject --codex
   ws-enter ExampleProject
   claude

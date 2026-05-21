@@ -51,6 +51,14 @@ The generated project-local settings look like:
 The bridge is not created for normal projects. To enable it for an existing
 project, rerun `ws-new <template> <project> --with-docker`.
 
+If Dev Containers reports that `/var/run/docker.sock` does not exist, start the
+daemon inside the project box:
+
+```bash
+ws-docker-start ExampleProject
+ws-code ExampleProject
+```
+
 Project Distroboxes still own the toolchains outside the editor too:
 
 ```bash

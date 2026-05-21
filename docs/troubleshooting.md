@@ -147,6 +147,12 @@ If Docker was installed but the daemon is not reachable, exit and re-enter the
 box. If it still fails:
 
 ```bash
+ws-docker-start WebApp
+```
+
+Or from inside the project box:
+
+```bash
 sudo service docker start
 ```
 

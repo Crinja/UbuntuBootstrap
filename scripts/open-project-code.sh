@@ -117,9 +117,11 @@ shell_quote() {
 write_project_docker_bridge() {
   local bridge_dir="$1"
   local box_name="$2"
-  local project_dir="$3"
-  local project_mount="$4"
+  local project_name="$3"
+  local project_dir="$4"
+  local project_mount="$5"
   local quoted_box_name
+  local quoted_project_name
   local quoted_project_dir
   local quoted_project_mount
   local quoted_runner
@@ -127,6 +129,7 @@ write_project_docker_bridge() {
   mkdir -p "$bridge_dir"
 
   quoted_box_name="$(shell_quote "$box_name")"
+  quoted_project_name="$(shell_quote "$project_name")"
   quoted_project_dir="$(shell_quote "$project_dir")"
   quoted_project_mount="$(shell_quote "$project_mount")"
   quoted_runner="$(shell_quote "${bridge_dir}/docker-bridge-runner")"
@@ -136,6 +139,7 @@ write_project_docker_bridge() {
 set -euo pipefail
 
 box_name=${quoted_box_name}
+project_name=${quoted_project_name}
 host_project_dir=${quoted_project_dir}
 project_mount=${quoted_project_mount}
 docker_command="\${1:?missing docker command}"
@@ -145,6 +149,53 @@ args=()
 for arg in "\$@"; do
   args+=("\${arg//\${host_project_dir}/\${project_mount}}")
 done
+
+needs_daemon=1
+case "\${args[0]:-}" in
+  --version|-v|help|-h|--help)
+    needs_daemon=0
+    ;;
+esac
+
+project_docker_info() {
+  /usr/bin/distrobox-enter --name "\$box_name" -- docker info >/dev/null 2>&1
+}
+
+try_start_project_docker() {
+  /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc '
+    if docker info >/dev/null 2>&1; then
+      exit 0
+    fi
+
+    if command -v service >/dev/null 2>&1; then
+      sudo -n service docker start >/dev/null 2>&1 || true
+    fi
+
+    for _ in 1 2 3; do
+      if docker info >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 1
+    done
+
+    exit 1
+  '
+}
+
+if [[ "\$needs_daemon" -eq 1 ]] && ! project_docker_info; then
+  try_start_project_docker || {
+    cat >&2 <<BRIDGE_ERROR
+Docker is installed in \$box_name, but its daemon/socket is not running.
+
+From the host, run:
+  ws-docker-start \$project_name
+
+Then reopen VS Code:
+  ws-code \$project_name
+BRIDGE_ERROR
+    exit 1
+  }
+fi
 
 case "\$docker_command" in
   docker)
@@ -259,7 +310,7 @@ enable_docker_bridge=0
 
 if [[ -f "$docker_bridge_marker" ]]; then
   enable_docker_bridge=1
-  write_project_docker_bridge "$code_bridge_dir" "$box_name" "$project_dir" "$project_mount"
+  write_project_docker_bridge "$code_bridge_dir" "$box_name" "$project_name" "$project_dir" "$project_mount"
 fi
 
 write_project_code_settings \

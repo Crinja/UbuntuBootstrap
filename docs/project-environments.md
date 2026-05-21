@@ -63,6 +63,9 @@ ws-new node WebApp --with-devcontainer --with-docker
 
 That installs Docker/Compose tooling inside that project Distrobox only.
 It also enables the VS Code Dev Containers bridge for that project.
+New Docker-enabled boxes are created with Distrobox `--init` and a privileged
+container flag because a nested Docker daemon is more demanding than a normal
+toolchain-only project box.
 
 Claude Code and Codex CLI are also opt-in per project:
 

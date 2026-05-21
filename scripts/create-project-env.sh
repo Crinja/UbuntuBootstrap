@@ -225,6 +225,7 @@ log "Image: ${image}"
 log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with project-specific Code state"
 if [[ "$install_docker" -eq 1 ]]; then
   log "Container tooling: Docker/Compose will be installed inside the project box"
+  log "Distrobox create: Docker projects use --init and --privileged for nested daemon support"
   log "VS Code: Dev Containers Docker bridge will be enabled for this project"
 else
   log "Container tooling: skipped; pass --with-docker to install Docker in this project box"
@@ -254,14 +255,25 @@ fi
 
 if distrobox_exists "$box_name"; then
   log "Distrobox already exists: $box_name"
+  if [[ "$install_docker" -eq 1 ]]; then
+    warn "Existing boxes cannot be retrofitted with Distrobox create flags."
+    warn "If Docker daemon startup fails, remove and recreate the Distrobox with --with-docker."
+  fi
 else
-  log "Creating Distrobox '$box_name'."
-  run distrobox-create \
-    --name "$box_name" \
-    --image "$image" \
-    --home "$box_home" \
-    --volume "${project_dir}:${project_mount}:rw" \
+  create_args=(
+    --name "$box_name"
+    --image "$image"
+    --home "$box_home"
+    --volume "${project_dir}:${project_mount}:rw"
     --yes
+  )
+
+  if [[ "$install_docker" -eq 1 ]]; then
+    create_args+=(--init --additional-flags "--privileged")
+  fi
+
+  log "Creating Distrobox '$box_name'."
+  run distrobox-create "${create_args[@]}"
 fi
 
 if [[ "$run_template" -eq 1 ]]; then

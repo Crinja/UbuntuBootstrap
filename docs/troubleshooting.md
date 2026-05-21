@@ -150,14 +150,31 @@ box. If it still fails:
 ws-docker-start WebApp
 ```
 
-Or from inside the project box:
+`ws-docker-start` tries `systemctl`, then `service`, then a direct `dockerd`
+background start. If direct `dockerd` startup fails, check the daemon log:
 
 ```bash
-sudo service docker start
+ws-enter WebApp
+sudo tail -n 80 /var/log/dockerd-project.log
 ```
 
-Nested Docker in Distrobox can depend on host runtime details. Use a VM if a
-repo needs unusual daemon, kernel, networking, or privileged behavior.
+If you see `docker: unrecognized service`, the box does not have a SysV Docker
+service. Use `ws-docker-start WebApp`; do not rely on `sudo service docker
+start` for that box.
+
+Docker-enabled project boxes created by current `ws-new --with-docker` use
+Distrobox `--init` plus a privileged container flag. Older project boxes were
+created without those flags. If daemon startup still fails in an older box,
+preserve the source folder and recreate the Distrobox:
+
+```bash
+ws-remove WebApp
+# confirm Distrobox removal, do not delete ~/Projects/WebApp
+ws-new node WebApp --with-devcontainer --with-docker
+```
+
+Nested Docker in Distrobox depends on host runtime details. Use a VM if a repo
+needs unusual daemon, kernel, networking, or privileged behavior.
 
 ## AI Tools
 

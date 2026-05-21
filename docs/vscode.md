@@ -59,6 +59,9 @@ ws-docker-start ExampleProject
 ws-code ExampleProject
 ```
 
+If the project box was created before Docker boxes used init/privileged
+settings, recreate only the Distrobox and keep the project source folder.
+
 Project Distroboxes still own the toolchains outside the editor too:
 
 ```bash

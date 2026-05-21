@@ -70,29 +70,78 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if docker info >/dev/null 2>&1; then
+docker_info_as_user() {
+  docker info >/dev/null 2>&1
+}
+
+docker_info_with_sudo() {
+  sudo docker info >/dev/null 2>&1
+}
+
+wait_for_docker() {
+  local attempt
+
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if docker_info_as_user; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
+start_docker_with_systemctl() {
+  command -v systemctl >/dev/null 2>&1 || return 1
+  systemctl list-unit-files docker.service >/dev/null 2>&1 || return 1
+  echo "Starting Docker daemon with: sudo systemctl start docker"
+  sudo systemctl start docker
+}
+
+start_docker_with_service() {
+  command -v service >/dev/null 2>&1 || return 1
+  [[ -x /etc/init.d/docker ]] || return 1
+  echo "Starting Docker daemon with: sudo service docker start"
+  sudo service docker start
+}
+
+start_docker_with_dockerd() {
+  command -v dockerd >/dev/null 2>&1 || return 1
+  echo "Starting Docker daemon directly with: sudo dockerd"
+  sudo mkdir -p /var/lib/docker /var/log /var/run
+  sudo rm -f /var/run/docker.pid
+  sudo sh -c 'nohup dockerd --host=unix:///var/run/docker.sock --pidfile=/var/run/docker.pid > /var/log/dockerd-project.log 2>&1 &'
+}
+
+if docker_info_as_user; then
   echo "Docker daemon is already reachable."
 else
-  if command -v service >/dev/null 2>&1; then
-    echo "Starting Docker daemon with: sudo service docker start"
-    sudo service docker start
+  if docker_info_with_sudo; then
+    printf 'ERROR: Docker is running, but this user cannot access /var/run/docker.sock.\n' >&2
+    printf '       Exit and re-enter the project Distrobox so docker group membership refreshes.\n' >&2
+    exit 1
+  fi
+
+  if start_docker_with_systemctl; then
+    :
+  elif start_docker_with_service; then
+    :
+  elif start_docker_with_dockerd; then
+    :
   else
-    printf 'ERROR: service command not found; cannot start Docker automatically in this box.\n' >&2
+    printf 'ERROR: Could not find a usable systemctl, service, or dockerd start path.\n' >&2
     exit 1
   fi
 fi
 
-for _ in 1 2 3 4 5; do
-  if docker info >/dev/null 2>&1; then
-    docker --version
-    docker compose version || docker-compose --version || true
-    echo "Docker daemon is reachable."
-    exit 0
-  fi
-  sleep 1
-done
+if wait_for_docker; then
+  docker --version
+  docker compose version || docker-compose --version || true
+  echo "Docker daemon is reachable."
+  exit 0
+fi
 
-if sudo docker info >/dev/null 2>&1; then
+if docker_info_with_sudo; then
   printf 'ERROR: Docker is running, but this user cannot access /var/run/docker.sock.\n' >&2
   printf '       Exit and re-enter the project Distrobox so docker group membership refreshes.\n' >&2
   exit 1
@@ -100,5 +149,6 @@ fi
 
 printf 'ERROR: Docker daemon still is not reachable at /var/run/docker.sock.\n' >&2
 printf '       Nested Docker in Distrobox can depend on host runtime details.\n' >&2
+printf '       If dockerd was attempted, inspect: sudo tail -n 80 /var/log/dockerd-project.log\n' >&2
 exit 1
 EOF

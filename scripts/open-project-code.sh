@@ -167,8 +167,18 @@ try_start_project_docker() {
       exit 0
     fi
 
-    if command -v service >/dev/null 2>&1; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files docker.service >/dev/null 2>&1; then
+      sudo -n systemctl start docker >/dev/null 2>&1 || true
+    fi
+
+    if ! docker info >/dev/null 2>&1 && command -v service >/dev/null 2>&1 && [ -x /etc/init.d/docker ]; then
       sudo -n service docker start >/dev/null 2>&1 || true
+    fi
+
+    if ! docker info >/dev/null 2>&1 && command -v dockerd >/dev/null 2>&1; then
+      sudo -n mkdir -p /var/lib/docker /var/log /var/run >/dev/null 2>&1 || true
+      sudo -n rm -f /var/run/docker.pid >/dev/null 2>&1 || true
+      sudo -n sh -c "nohup dockerd --host=unix:///var/run/docker.sock --pidfile=/var/run/docker.pid > /var/log/dockerd-project.log 2>&1 &" >/dev/null 2>&1 || true
     fi
 
     for _ in 1 2 3; do
@@ -192,6 +202,9 @@ From the host, run:
 
 Then reopen VS Code:
   ws-code \$project_name
+
+If that still fails, inspect inside the project box:
+  sudo tail -n 80 /var/log/dockerd-project.log
 BRIDGE_ERROR
     exit 1
   }

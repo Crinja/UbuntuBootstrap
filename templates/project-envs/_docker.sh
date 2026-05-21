@@ -53,26 +53,89 @@ configure_docker_group() {
   fi
 }
 
-try_start_docker_service() {
+docker_info_as_user() {
+  docker info >/dev/null 2>&1
+}
+
+docker_info_with_sudo() {
+  sudo docker info >/dev/null 2>&1
+}
+
+wait_for_docker() {
+  local attempt
+
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if docker_info_as_user || docker_info_with_sudo; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
+start_docker_with_systemctl() {
+  command -v systemctl >/dev/null 2>&1 || return 1
+  systemctl list-unit-files docker.service >/dev/null 2>&1 || return 1
+  sudo systemctl start docker >/dev/null 2>&1
+}
+
+start_docker_with_service() {
+  command -v service >/dev/null 2>&1 || return 1
+  [[ -x /etc/init.d/docker ]] || return 1
+  sudo service docker start >/dev/null 2>&1
+}
+
+start_docker_with_dockerd() {
+  command -v dockerd >/dev/null 2>&1 || return 1
+
+  sudo mkdir -p /var/lib/docker /var/log /var/run
+  sudo rm -f /var/run/docker.pid
+  sudo sh -c 'nohup dockerd --host=unix:///var/run/docker.sock --pidfile=/var/run/docker.pid > /var/log/dockerd-project.log 2>&1 &'
+}
+
+try_start_docker_daemon() {
   if docker info >/dev/null 2>&1; then
     echo "Docker daemon is already reachable."
     return 0
   fi
 
-  if command -v service >/dev/null 2>&1; then
-    if sudo service docker start >/dev/null 2>&1; then
-      echo "Docker service started inside this project box."
-      return 0
+  if docker_info_with_sudo; then
+    echo "Docker daemon is reachable with sudo."
+    echo "Exit and re-enter the Distrobox so docker group membership refreshes."
+    return 0
+  fi
+
+  if start_docker_with_systemctl; then
+    echo "Docker daemon started with systemctl."
+  elif start_docker_with_service; then
+    echo "Docker daemon started with service."
+  elif start_docker_with_dockerd; then
+    echo "Docker daemon started directly with dockerd."
+  else
+    echo "WARN: Could not find a usable systemctl, service, or dockerd start path." >&2
+  fi
+
+  if wait_for_docker; then
+    if docker_info_as_user; then
+      echo "Docker daemon is reachable."
+    else
+      echo "Docker daemon is reachable with sudo."
+      echo "Exit and re-enter the Distrobox so docker group membership refreshes."
     fi
+    return 0
   fi
 
   cat >&2 <<'EOF'
 WARN: Docker was installed, but the daemon is not reachable yet.
-      Exit and re-enter the Distrobox, then try:
-        sudo service docker start
+      Try from the host:
+        ws-docker-start <project-name>
 
       Nested Docker inside Distrobox may depend on host/container runtime
       settings. For genuinely messy container experiments, use a VM.
+
+      If dockerd was attempted, inspect:
+        sudo tail -n 80 /var/log/dockerd-project.log
 EOF
 }
 
@@ -81,7 +144,7 @@ echo "Project mount: ${project_mount}"
 
 install_docker_packages
 configure_docker_group
-try_start_docker_service
+try_start_docker_daemon
 
 docker --version || true
 docker compose version || docker-compose --version || true

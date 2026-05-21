@@ -73,7 +73,9 @@ ws-new node WebApp --with-devcontainer --with-docker
 ```
 
 That installs Docker/Compose inside `project-webapp` and enables the
-project-local VS Code bridge for Dev Containers.
+project-local VS Code bridge for Dev Containers. Docker-enabled boxes are
+created with extra init/privileged container settings because they run a nested
+daemon; keep that opt-in for trusted repos.
 
 AI tools are also opt-in per project:
 

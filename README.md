@@ -63,12 +63,17 @@ ws-code ExampleProject
 project-specific Code state under `~/Boxes/projects/<project>/.vscode-flatpak`.
 Extensions installed from that window stay out of the normal default Code
 state. The integrated terminal defaults to the matching project Distrobox.
+If the project was created with `--with-docker`, `ws-code` also points the Dev
+Containers extension at that project Distrobox's Docker CLI.
 
 Docker is opt-in per project for devcontainer-heavy repos:
 
 ```bash
 ws-new node WebApp --with-devcontainer --with-docker
 ```
+
+That installs Docker/Compose inside `project-webapp` and enables the
+project-local VS Code bridge for Dev Containers.
 
 AI tools are also opt-in per project:
 

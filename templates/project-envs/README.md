@@ -8,7 +8,8 @@ Language templates then add project-specific tooling inside that one box.
 VS Code is not installed inside project boxes. Use `ws-code <project>` to open
 the source folder in the VS Code Flatpak with project-specific settings and
 extensions under `~/Boxes/projects/<project>/.vscode-flatpak`. Its integrated
-terminal is configured to enter the matching project Distrobox.
+terminal is configured to enter the matching project Distrobox. Projects created
+with `--with-docker` also get a project-local Dev Containers Docker bridge.
 
 `_docker.sh` is optional and runs only when `ws-new` receives `--with-docker`.
 

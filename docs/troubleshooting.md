@@ -82,6 +82,37 @@ That rewrites the project-local VS Code terminal profile. The terminal profile
 uses `flatpak-spawn --host`, so the VS Code Flatpak must be allowed to talk to
 the host Flatpak portal.
 
+If the Dev Containers extension cannot find Docker in a project that should use
+project-local Docker, rerun:
+
+```bash
+ws-new node ExampleProject --with-docker
+ws-code ExampleProject
+```
+
+That creates this marker and lets `ws-code` write bridge settings:
+
+```text
+~/Boxes/projects/ExampleProject/.vscode-flatpak/enable-project-docker
+```
+
+Check the generated settings:
+
+```bash
+jq '{
+  dockerPath: .["dev.containers.dockerPath"],
+  dockerComposePath: .["dev.containers.dockerComposePath"]
+}' ~/Boxes/projects/ExampleProject/.vscode-flatpak/user-data/User/settings.json
+```
+
+To confirm Docker exists inside the project Distrobox:
+
+```bash
+ws-enter ExampleProject
+docker --version
+docker compose version
+```
+
 If `ws-code` says VS Code is not installed, run:
 
 ```bash

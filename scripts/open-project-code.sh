@@ -27,10 +27,13 @@ The integrated terminal uses the matching project Distrobox by default.
 EOF
 }
 
-write_project_terminal_settings() {
+write_project_code_settings() {
   local settings_file="$1"
   local box_name="$2"
   local project_mount="$3"
+  local enable_docker_bridge="$4"
+  local docker_path="$5"
+  local docker_compose_path="$6"
   local profile_label="Project Distrobox"
   local tmp_file
 
@@ -59,6 +62,9 @@ EOF
     --arg profile_label "$profile_label" \
     --arg box_name "$box_name" \
     --arg project_mount "$project_mount" \
+    --arg enable_docker_bridge "$enable_docker_bridge" \
+    --arg docker_path "$docker_path" \
+    --arg docker_compose_path "$docker_compose_path" \
     '
       .["terminal.integrated.profiles.linux"] =
         ((.["terminal.integrated.profiles.linux"] // {}) + {
@@ -77,9 +83,63 @@ EOF
           }
         })
       | .["terminal.integrated.defaultProfile.linux"] = $profile_label
+      | if $enable_docker_bridge == "1" then
+          .["dev.containers.dockerPath"] = $docker_path
+        else
+          if .["dev.containers.dockerPath"] == $docker_path then
+            del(.["dev.containers.dockerPath"])
+          else
+            .
+          end
+        end
+      | if $enable_docker_bridge == "1" then
+          .["dev.containers.dockerComposePath"] = $docker_compose_path
+        else
+          if .["dev.containers.dockerComposePath"] == $docker_compose_path then
+            del(.["dev.containers.dockerComposePath"])
+          else
+            .
+          end
+        end
     ' "$settings_file" >"$tmp_file"
 
   mv "$tmp_file" "$settings_file"
+}
+
+write_project_docker_bridge() {
+  local bridge_dir="$1"
+  local box_name="$2"
+
+  mkdir -p "$bridge_dir"
+
+  cat >"${bridge_dir}/docker" <<EOF
+#!/bin/sh
+set -eu
+if [ -f /.flatpak-info ]; then
+  exec /usr/bin/flatpak-spawn --host /usr/bin/distrobox-enter --name "$box_name" -- docker "\$@"
+fi
+if command -v distrobox-enter >/dev/null 2>&1; then
+  exec distrobox-enter --name "$box_name" -- docker "\$@"
+fi
+exec docker "\$@"
+EOF
+
+  cat >"${bridge_dir}/docker-compose" <<EOF
+#!/bin/sh
+set -eu
+if [ -f /.flatpak-info ]; then
+  exec /usr/bin/flatpak-spawn --host /usr/bin/distrobox-enter --name "$box_name" -- bash -lc 'if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$@"
+fi
+if command -v distrobox-enter >/dev/null 2>&1; then
+  exec distrobox-enter --name "$box_name" -- bash -lc 'if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$@"
+fi
+if command -v docker-compose >/dev/null 2>&1; then
+  exec docker-compose "\$@"
+fi
+exec docker compose "\$@"
+EOF
+
+  chmod +x "${bridge_dir}/docker" "${bridge_dir}/docker-compose"
 }
 
 if [[ $# -eq 0 ]]; then
@@ -151,8 +211,23 @@ fi
 
 code_user_data_dir="${project_home}/.vscode-flatpak/user-data"
 code_extensions_dir="${project_home}/.vscode-flatpak/extensions"
+code_bridge_dir="${project_home}/.vscode-flatpak/bin"
+docker_bridge_marker="${project_home}/.vscode-flatpak/enable-project-docker"
 mkdir -p "$code_user_data_dir" "$code_extensions_dir"
-write_project_terminal_settings "${code_user_data_dir}/User/settings.json" "$box_name" "$project_mount"
+enable_docker_bridge=0
+
+if [[ -f "$docker_bridge_marker" ]]; then
+  enable_docker_bridge=1
+  write_project_docker_bridge "$code_bridge_dir" "$box_name"
+fi
+
+write_project_code_settings \
+  "${code_user_data_dir}/User/settings.json" \
+  "$box_name" \
+  "$project_mount" \
+  "$enable_docker_bridge" \
+  "${code_bridge_dir}/docker" \
+  "${code_bridge_dir}/docker-compose"
 
 if [[ $# -eq 0 ]]; then
   set -- "$project_dir"

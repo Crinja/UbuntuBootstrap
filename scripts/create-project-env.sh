@@ -81,6 +81,22 @@ devcontainer_template_name() {
   esac
 }
 
+enable_vscode_docker_bridge() {
+  local marker_path="$1"
+
+  if [[ "${WS_DRY_RUN}" == "1" ]]; then
+    log "Would enable VS Code Dev Containers Docker bridge at ${marker_path}."
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$marker_path")"
+  cat >"$marker_path" <<'EOF'
+# Created by ws-new --with-docker.
+# When this file exists, ws-code writes project-local Docker bridge settings for
+# the VS Code Dev Containers extension.
+EOF
+}
+
 image="ubuntu:24.04"
 with_devcontainer=0
 install_docker=0
@@ -189,6 +205,7 @@ box_name="project-${normalized_project}"
 project_dir="${HOME}/Projects/${project_name}"
 box_home="${HOME}/Boxes/projects/${project_name}"
 project_mount="/work/${normalized_project}"
+vscode_docker_bridge_marker="${box_home}/.vscode-flatpak/enable-project-docker"
 
 if [[ "$with_devcontainer" -eq 1 ]]; then
   devcontainer_template="${REPO_ROOT}/templates/devcontainer/$(devcontainer_template_name "$template")"
@@ -203,6 +220,7 @@ log "Image: ${image}"
 log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with project-specific Code state"
 if [[ "$install_docker" -eq 1 ]]; then
   log "Container tooling: Docker/Compose will be installed inside the project box"
+  log "VS Code: Dev Containers Docker bridge will be enabled for this project"
 else
   log "Container tooling: skipped; pass --with-docker to install Docker in this project box"
 fi
@@ -267,6 +285,10 @@ else
   log "Skipping template run because --no-template-run was passed."
 fi
 
+if [[ "$install_docker" -eq 1 ]]; then
+  enable_vscode_docker_bridge "$vscode_docker_bridge_marker"
+fi
+
 log "Ensuring ~/project points at ${project_mount} inside the box."
 if [[ "${WS_DRY_RUN}" == "1" ]]; then
   log "Would create ~/project symlink inside ${box_name}."
@@ -318,6 +340,9 @@ Docker/Compose was requested for this project box. After entering the box, check
   docker compose version
 
 If group membership changed, exit and re-enter the Distrobox before using Docker.
+
+The next ws-code launch will configure project-local Docker bridge settings for
+the VS Code Dev Containers extension.
 EOF
 fi
 

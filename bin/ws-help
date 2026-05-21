@@ -7,7 +7,7 @@ Ubuntu workstation helpers
 Common commands:
   ws-new <template> <project-name> [options]
       Create a project-scoped Distrobox.
-      Use --with-docker for project-local Docker/Compose tooling.
+      Use --with-docker for project-local Docker/Compose tooling and VS Code Dev Containers bridge.
       Use --with-claude, --with-codex, or --with-ai for project-local AI tools.
 
   ws-enter <project-name>

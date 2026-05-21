@@ -52,6 +52,8 @@ ws-code ExampleProject
 The project Distrobox still owns the toolchain; `ws-code` stores editor
 settings and extensions under `~/Boxes/projects/<project>/.vscode-flatpak`.
 Its integrated terminal defaults to the matching `project-<name>` Distrobox.
+If the project uses `--with-docker`, `ws-code` also writes project-local Dev
+Containers Docker settings that bridge back into that same Distrobox.
 
 Docker is opt-in for repos that need devcontainers or Docker Compose:
 
@@ -60,6 +62,7 @@ ws-new node WebApp --with-devcontainer --with-docker
 ```
 
 That installs Docker/Compose tooling inside that project Distrobox only.
+It also enables the VS Code Dev Containers bridge for that project.
 
 Claude Code and Codex CLI are also opt-in per project:
 

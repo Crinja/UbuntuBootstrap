@@ -29,6 +29,27 @@ flatpak-spawn --host /usr/bin/distrobox-enter --name project-exampleproject -- b
 So a new VS Code terminal starts inside the project Distrobox with the project
 toolchain available.
 
+When a project is created or updated with `--with-docker`, `ws-code` creates
+project-local Docker bridge scripts and points the Dev Containers extension at
+them:
+
+```text
+~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker
+~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker-compose
+```
+
+The generated project-local settings look like:
+
+```json
+{
+  "dev.containers.dockerPath": "/home/me/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker",
+  "dev.containers.dockerComposePath": "/home/me/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker-compose"
+}
+```
+
+The bridge is not created for normal projects. To enable it for an existing
+project, rerun `ws-new <template> <project> --with-docker`.
+
 Project Distroboxes still own the toolchains outside the editor too:
 
 ```bash

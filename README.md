@@ -64,7 +64,8 @@ project-specific Code state under `~/Boxes/projects/<project>/.vscode-flatpak`.
 Extensions installed from that window stay out of the normal default Code
 state. The integrated terminal defaults to the matching project Distrobox.
 If the project was created with `--with-devcontainer` or `--with-podman`,
-`ws-code` also points the Dev Containers extension at host rootless Podman.
+`ws-code` installs the Dev Containers extension into that project's isolated
+VS Code extension directory and points it at host rootless Podman.
 
 Podman-backed Dev Containers are opt-in per project:
 

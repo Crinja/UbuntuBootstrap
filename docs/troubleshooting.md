@@ -64,6 +64,10 @@ Project-local Code state should appear under:
 ~/Boxes/projects/ExampleProject/.vscode-flatpak/extensions
 ```
 
+For projects created with `--with-devcontainer` or `--with-podman`, the Dev
+Containers extension is installed into that project-local extensions directory
+when `ws-code` opens the project.
+
 The integrated terminal should default to `Project Distrobox`. Check inside a
 new VS Code terminal:
 

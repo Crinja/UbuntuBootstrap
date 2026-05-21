@@ -10,7 +10,8 @@ the source folder in the VS Code Flatpak with project-specific settings and
 extensions under `~/Boxes/projects/<project>/.vscode-flatpak`. Its integrated
 terminal is configured to enter the matching project Distrobox. Projects created
 with `--with-devcontainer` or `--with-podman` also get project-local VS Code
-settings that use host Podman for Dev Containers.
+settings that use host Podman for Dev Containers, and `ws-code` installs the
+Dev Containers extension into that project's extension directory.
 
 `_ai-tools.sh` is optional and runs only when `ws-new` receives
 `--with-claude`, `--with-codex`, or `--with-ai`, or when `ws-ai-add` is used.

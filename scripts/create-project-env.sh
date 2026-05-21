@@ -335,8 +335,9 @@ VS Code will use host rootless Podman through project-local settings.
 Check the host runtime with:
   podman info
 
-The next ws-code launch will configure project-local Podman settings for
-the VS Code Dev Containers extension.
+The next ws-code launch will install the Dev Containers extension into this
+project's VS Code extension directory and configure project-local Podman
+settings for it.
 EOF
 fi
 

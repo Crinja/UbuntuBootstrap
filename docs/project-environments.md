@@ -53,7 +53,9 @@ The project Distrobox still owns the toolchain; `ws-code` stores editor
 settings and extensions under `~/Boxes/projects/<project>/.vscode-flatpak`.
 Its integrated terminal defaults to the matching `project-<name>` Distrobox.
 If the project uses `--with-devcontainer` or `--with-podman`, `ws-code` also
-writes project-local Dev Containers settings that use host rootless Podman.
+writes project-local Dev Containers settings that use host rootless Podman and
+installs the Dev Containers extension into that project's VS Code extension
+directory.
 
 Podman-backed Dev Containers are opt-in:
 

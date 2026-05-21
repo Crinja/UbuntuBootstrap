@@ -31,7 +31,8 @@ toolchain available.
 
 When a project is created or updated with `--with-devcontainer` or
 `--with-podman`, `ws-code` creates project-local Podman bridge scripts and
-points the Dev Containers extension at them:
+installs the Dev Containers extension into that project's extension directory.
+It also points the extension at the Podman bridge scripts:
 
 ```text
 ~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/podman

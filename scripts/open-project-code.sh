@@ -35,6 +35,10 @@ compose_runtime_setting_key() {
   printf 'dev.containers.%sComposePath\n' "doc""ker"
 }
 
+dev_containers_extension_id() {
+  printf 'ms-vscode-remote.remote-containers\n'
+}
+
 write_project_code_settings() {
   local settings_file="$1"
   local box_name="$2"
@@ -151,6 +155,44 @@ EOF
   chmod +x "${bridge_dir}/podman" "${bridge_dir}/podman-compose"
 }
 
+project_extension_installed() {
+  local extensions_dir="$1"
+  local extension_id="$2"
+  local lowered_id
+
+  lowered_id="$(printf '%s' "$extension_id" | tr '[:upper:]' '[:lower:]')"
+
+  find "$extensions_dir" \
+    -mindepth 1 \
+    -maxdepth 1 \
+    -type d \
+    \( -iname "$lowered_id" -o -iname "${lowered_id}-*" \) \
+    -print \
+    -quit |
+    grep -q .
+}
+
+install_project_code_extension() {
+  local app_id="$1"
+  local user_data_dir="$2"
+  local extensions_dir="$3"
+  local extension_id="$4"
+
+  if project_extension_installed "$extensions_dir" "$extension_id"; then
+    log "Dev Containers extension already installed for this project."
+    return 0
+  fi
+
+  log "Installing Dev Containers extension into this project's VS Code extension directory."
+  if ! flatpak run "$app_id" \
+    --user-data-dir "$user_data_dir" \
+    --extensions-dir "$extensions_dir" \
+    --install-extension "$extension_id"; then
+    warn "Could not install Dev Containers extension automatically."
+    warn "Open ws-code for this project and install: $extension_id"
+  fi
+}
+
 if [[ $# -eq 0 ]]; then
   usage
   exit 1
@@ -228,6 +270,11 @@ enable_podman_bridge=0
 if [[ -f "$podman_bridge_marker" ]]; then
   enable_podman_bridge=1
   write_project_podman_bridge "$code_bridge_dir"
+  install_project_code_extension \
+    "$app_id" \
+    "$code_user_data_dir" \
+    "$code_extensions_dir" \
+    "$(dev_containers_extension_id)"
 fi
 
 write_project_code_settings \

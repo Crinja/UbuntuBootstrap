@@ -83,38 +83,25 @@ uses `flatpak-spawn --host`, so the VS Code Flatpak must be allowed to talk to
 the host Flatpak portal. `install-flatpaks.sh` applies that VS Code override
 when `com.visualstudio.code` is in `config/flatpaks.txt`.
 
-If the Dev Containers extension cannot find Docker in a project that should use
-project-local Docker, rerun:
+If the Dev Containers extension cannot find the container runtime in a project
+that should use host Podman, rerun:
 
 ```bash
-ws-new node ExampleProject --with-docker
+ws-new node ExampleProject --with-podman
 ws-code ExampleProject
 ```
 
 That creates this marker and lets `ws-code` write bridge settings:
 
 ```text
-~/Boxes/projects/ExampleProject/.vscode-flatpak/enable-project-docker
+~/Boxes/projects/ExampleProject/.vscode-flatpak/enable-host-podman
 ```
 
-The bridge runs Docker inside the project Distrobox and rewrites the host
-project path to the `/work/<project>` mount used inside that box.
-
-Check the generated settings:
+To confirm host Podman works:
 
 ```bash
-jq '{
-  dockerPath: .["dev.containers.dockerPath"],
-  dockerComposePath: .["dev.containers.dockerComposePath"]
-}' ~/Boxes/projects/ExampleProject/.vscode-flatpak/user-data/User/settings.json
-```
-
-To confirm Docker exists inside the project Distrobox:
-
-```bash
-ws-enter ExampleProject
-docker --version
-docker compose version
+podman info
+podman run --rm hello-world
 ```
 
 If `ws-code` says VS Code is not installed, run:
@@ -127,54 +114,35 @@ If an extension needs direct access to a compiler, debugger, or language server
 inside a container, prefer a devcontainer for that repo or configure the
 extension to call the relevant `distrobox-enter` command explicitly.
 
-## Docker In Project Boxes
+## Podman Dev Containers
 
-Docker is not installed in every project box. Add it only when needed:
-
-```bash
-ws-new node WebApp --with-devcontainer --with-docker
-```
-
-Check it inside the project box:
+Dev Containers use host rootless Podman. For a generated template:
 
 ```bash
-ws-enter WebApp
-docker --version
-docker compose version
+ws-new node WebApp --with-devcontainer
 ```
 
-If Docker was installed but the daemon is not reachable, exit and re-enter the
-box. If it still fails:
+For an existing repo that already has `.devcontainer/`:
 
 ```bash
-ws-docker-start WebApp
+ws-new generic WebApp --with-podman
+ws-code WebApp
 ```
 
-`ws-docker-start` tries `systemctl`, then `service`, then a direct `dockerd`
-background start. If direct `dockerd` startup fails, check the daemon log:
+If compose-based devcontainers fail, check the host helper:
 
 ```bash
-ws-enter WebApp
-sudo tail -n 80 /var/log/dockerd-project.log
+command -v podman-compose
 ```
 
-If you see `docker: unrecognized service`, the box does not have a SysV Docker
-service. Use `ws-docker-start WebApp`; do not rely on `sudo service docker
-start` for that box.
-
-Docker-enabled project boxes created by current `ws-new --with-docker` use
-Distrobox `--init` plus a privileged container flag. Older project boxes were
-created without those flags. If daemon startup still fails in an older box,
-preserve the source folder and recreate the Distrobox:
+Install it through the bootstrap package list or manually:
 
 ```bash
-ws-remove WebApp
-# confirm Distrobox removal, do not delete ~/Projects/WebApp
-ws-new node WebApp --with-devcontainer --with-docker
+sudo apt install podman-compose
 ```
 
-Nested Docker in Distrobox depends on host runtime details. Use a VM if a repo
-needs unusual daemon, kernel, networking, or privileged behavior.
+Use a VM if a repo needs unusual daemon, kernel, networking, or privileged
+behavior.
 
 ## AI Tools
 

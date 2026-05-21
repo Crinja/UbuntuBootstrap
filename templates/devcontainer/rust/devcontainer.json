@@ -1,8 +1,6 @@
 {
   "name": "Rust Project",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "image": "mcr.microsoft.com/devcontainers/rust:1-1-bookworm",
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "customizations": {

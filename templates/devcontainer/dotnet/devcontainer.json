@@ -1,11 +1,6 @@
 {
   "name": ".NET Project",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "args": {
-      "VARIANT": "8.0-noble"
-    }
-  },
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-noble",
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "customizations": {

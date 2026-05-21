@@ -1,8 +1,6 @@
 {
   "name": "C++ Project",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "image": "mcr.microsoft.com/devcontainers/cpp:1-ubuntu-24.04",
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "customizations": {

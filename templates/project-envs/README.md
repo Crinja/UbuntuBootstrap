@@ -9,9 +9,8 @@ VS Code is not installed inside project boxes. Use `ws-code <project>` to open
 the source folder in the VS Code Flatpak with project-specific settings and
 extensions under `~/Boxes/projects/<project>/.vscode-flatpak`. Its integrated
 terminal is configured to enter the matching project Distrobox. Projects created
-with `--with-docker` also get a project-local Dev Containers Docker bridge.
-
-`_docker.sh` is optional and runs only when `ws-new` receives `--with-docker`.
+with `--with-devcontainer` or `--with-podman` also get project-local VS Code
+settings that use host Podman for Dev Containers.
 
 `_ai-tools.sh` is optional and runs only when `ws-new` receives
 `--with-claude`, `--with-codex`, or `--with-ai`, or when `ws-ai-add` is used.

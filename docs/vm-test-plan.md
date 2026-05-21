@@ -58,15 +58,13 @@ ws-list
 ws-remove TestNode
 ```
 
-Optional Docker/devcontainer smoke test:
+Optional Podman/devcontainer smoke test:
 
 ```bash
-ws-new node DockerExample --with-devcontainer --with-docker
-ws-enter DockerExample
-docker --version
-docker compose version
-exit
-command -v docker && echo "unexpected host docker" || echo "no host docker"
+ws-new node ContainerExample --with-devcontainer
+podman info
+podman run --rm hello-world
+ws-code ContainerExample
 ```
 
 Optional AI smoke test:

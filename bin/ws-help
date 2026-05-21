@@ -7,7 +7,8 @@ Ubuntu workstation helpers
 Common commands:
   ws-new <template> <project-name> [options]
       Create a project-scoped Distrobox.
-      Use --with-docker for project-local Docker/Compose tooling and VS Code Dev Containers bridge.
+      Use --with-devcontainer for templates and host Podman Dev Containers integration.
+      Use --with-podman to enable host Podman integration for an existing project.
       Use --with-claude, --with-codex, or --with-ai for project-local AI tools.
 
   ws-enter <project-name>
@@ -23,9 +24,6 @@ Common commands:
       Launch the VS Code Flatpak with project-specific settings/extensions.
       Integrated terminals enter the matching project Distrobox.
 
-  ws-docker-start <project-name>
-      Start/check Docker inside a project box created with --with-docker.
-
   ws-ai-add <project-name> --claude|--codex|--all
       Add project-local Claude Code and/or Codex CLI to an existing project box.
 
@@ -34,7 +32,7 @@ Templates:
 
 Examples:
   ws-new rust ExampleProject
-  ws-new dotnet ApiExample --with-devcontainer --with-docker
+  ws-new dotnet ApiExample --with-devcontainer
   ws-new rust AgentProject --with-claude
   ws-new node WebExample
   ws-new python HeadlessScript
@@ -42,7 +40,6 @@ Examples:
   ws-new rust-nightly CompilerExperiment
   ws-enter ExampleProject
   ws-code ExampleProject
-  ws-docker-start ExampleProject
   ws-ai-add ExampleProject --codex
   ws-enter ExampleProject
   claude

@@ -29,38 +29,22 @@ flatpak-spawn --host /usr/bin/distrobox-enter --name project-exampleproject -- b
 So a new VS Code terminal starts inside the project Distrobox with the project
 toolchain available.
 
-When a project is created or updated with `--with-docker`, `ws-code` creates
-project-local Docker bridge scripts and points the Dev Containers extension at
-them. The bridge runs Docker inside the project Distrobox and translates the
-host workspace path to the `/work/<project>` mount used inside that box:
+When a project is created or updated with `--with-devcontainer` or
+`--with-podman`, `ws-code` creates project-local Podman bridge scripts and
+points the Dev Containers extension at them:
 
 ```text
-~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker
-~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker-compose
-```
-
-The generated project-local settings look like:
-
-```json
-{
-  "dev.containers.dockerPath": "/home/me/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker",
-  "dev.containers.dockerComposePath": "/home/me/Boxes/projects/ExampleProject/.vscode-flatpak/bin/docker-compose"
-}
+~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/podman
+~/Boxes/projects/ExampleProject/.vscode-flatpak/bin/podman-compose
 ```
 
 The bridge is not created for normal projects. To enable it for an existing
-project, rerun `ws-new <template> <project> --with-docker`.
-
-If Dev Containers reports that `/var/run/docker.sock` does not exist, start the
-daemon inside the project box:
+project that already has `.devcontainer/`, rerun:
 
 ```bash
-ws-docker-start ExampleProject
+ws-new generic ExampleProject --with-podman
 ws-code ExampleProject
 ```
-
-If the project box was created before Docker boxes used init/privileged
-settings, recreate only the Distrobox and keep the project source folder.
 
 Project Distroboxes still own the toolchains outside the editor too:
 
@@ -72,5 +56,5 @@ For extensions that must run inside a container with the project toolchain, use
 a devcontainer:
 
 ```bash
-ws-new node WebApp --with-devcontainer --with-docker
+ws-new node WebApp --with-devcontainer
 ```

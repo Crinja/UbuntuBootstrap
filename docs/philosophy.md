@@ -10,7 +10,7 @@ Layers:
 - Host: management plane only.
 - Flatpak: GUI apps, including VS Code.
 - Project Distrobox: normal development work.
-- Project Docker: opt-in only, for repos that need devcontainers or Compose.
+- Host Podman: rootless runtime for Distrobox and Dev Containers.
 - Project AI tools: opt-in Claude/Codex installs inside project boxes.
 - VM: untrusted, incompatible, or system-level experiments.
 

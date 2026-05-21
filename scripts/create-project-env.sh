@@ -18,8 +18,8 @@ Templates:
 
 Options:
   --image <image>          Container image to use. Default: ubuntu:24.04
-  --with-devcontainer      Copy matching templates/devcontainer/<template>/ files
-  --with-docker            Install Docker/Compose tooling inside the project box
+  --with-devcontainer      Copy matching devcontainer files and enable host Podman
+  --with-podman            Enable VS Code Dev Containers with host Podman
   --with-claude            Install Claude Code inside the project box
   --with-codex             Install Codex CLI inside the project box
   --with-ai                Install both Claude Code and Codex CLI
@@ -30,7 +30,7 @@ Options:
 
 Examples:
   ./scripts/create-project-env.sh rust ExampleProject
-  ./scripts/create-project-env.sh dotnet ApiExample --with-devcontainer --with-docker
+  ./scripts/create-project-env.sh dotnet ApiExample --with-devcontainer
   ./scripts/create-project-env.sh rust AgentProject --with-claude
   ./scripts/create-project-env.sh node WebExample
   ./scripts/create-project-env.sh cpp EngineExperiment
@@ -81,25 +81,25 @@ devcontainer_template_name() {
   esac
 }
 
-enable_vscode_docker_bridge() {
+enable_vscode_podman_bridge() {
   local marker_path="$1"
 
   if [[ "${WS_DRY_RUN}" == "1" ]]; then
-    log "Would enable VS Code Dev Containers Docker bridge at ${marker_path}."
+    log "Would enable VS Code Dev Containers host Podman bridge at ${marker_path}."
     return 0
   fi
 
   mkdir -p "$(dirname "$marker_path")"
   cat >"$marker_path" <<'EOF'
-# Created by ws-new --with-docker.
-# When this file exists, ws-code writes project-local Docker bridge settings for
-# the VS Code Dev Containers extension.
+# Created by ws-new --with-devcontainer or --with-podman.
+# When this file exists, ws-code writes project-local Dev Containers settings
+# that run container commands through host rootless Podman.
 EOF
 }
 
 image="ubuntu:24.04"
 with_devcontainer=0
-install_docker=0
+enable_podman_devcontainers=0
 install_claude=0
 install_codex=0
 force=0
@@ -136,15 +136,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-devcontainer)
       with_devcontainer=1
+      enable_podman_devcontainers=1
       shift
       ;;
-    --with-docker)
-      install_docker=1
-      shift
-      ;;
-    --wth-docker)
-      warn "Assuming you meant --with-docker."
-      install_docker=1
+    --with-podman)
+      enable_podman_devcontainers=1
       shift
       ;;
     --with-claude)
@@ -192,14 +188,9 @@ section "Project environment creation"
 
 template_script="${REPO_ROOT}/templates/project-envs/${template}.sh"
 project_baseline_template="${REPO_ROOT}/templates/project-envs/_project-baseline.sh"
-docker_template="${REPO_ROOT}/templates/project-envs/_docker.sh"
 ai_template="${REPO_ROOT}/templates/project-envs/_ai-tools.sh"
 [[ -f "$template_script" ]] || die "Unknown project template '$template'. Expected $template_script"
 [[ -f "$project_baseline_template" ]] || die "Missing project baseline template: $project_baseline_template"
-
-if [[ "$install_docker" -eq 1 ]]; then
-  [[ -f "$docker_template" ]] || die "Missing Docker template: $docker_template"
-fi
 
 if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
   [[ -f "$ai_template" ]] || die "Missing AI tools template: $ai_template"
@@ -210,7 +201,7 @@ box_name="project-${normalized_project}"
 project_dir="${HOME}/Projects/${project_name}"
 box_home="${HOME}/Boxes/projects/${project_name}"
 project_mount="/work/${normalized_project}"
-vscode_docker_bridge_marker="${box_home}/.vscode-flatpak/enable-project-docker"
+vscode_podman_bridge_marker="${box_home}/.vscode-flatpak/enable-host-podman"
 
 if [[ "$with_devcontainer" -eq 1 ]]; then
   devcontainer_template="${REPO_ROOT}/templates/devcontainer/$(devcontainer_template_name "$template")"
@@ -223,12 +214,10 @@ log "Source folder: ${project_dir}"
 log "Box home: ${box_home}"
 log "Image: ${image}"
 log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with project-specific Code state"
-if [[ "$install_docker" -eq 1 ]]; then
-  log "Container tooling: Docker/Compose will be installed inside the project box"
-  log "Distrobox create: Docker projects use --init and --privileged for nested daemon support"
-  log "VS Code: Dev Containers Docker bridge will be enabled for this project"
+if [[ "$enable_podman_devcontainers" -eq 1 ]]; then
+  log "Dev Containers: VS Code will use host rootless Podman for this project"
 else
-  log "Container tooling: skipped; pass --with-docker to install Docker in this project box"
+  log "Dev Containers: skipped; pass --with-devcontainer or --with-podman to enable host Podman"
 fi
 if [[ "$install_claude" -eq 1 || "$install_codex" -eq 1 ]]; then
   if [[ "$install_claude" -eq 1 && "$install_codex" -eq 1 ]]; then
@@ -255,10 +244,6 @@ fi
 
 if distrobox_exists "$box_name"; then
   log "Distrobox already exists: $box_name"
-  if [[ "$install_docker" -eq 1 ]]; then
-    warn "Existing boxes cannot be retrofitted with Distrobox create flags."
-    warn "If Docker daemon startup fails, remove and recreate the Distrobox with --with-docker."
-  fi
 else
   create_args=(
     --name "$box_name"
@@ -267,10 +252,6 @@ else
     --volume "${project_dir}:${project_mount}:rw"
     --yes
   )
-
-  if [[ "$install_docker" -eq 1 ]]; then
-    create_args+=(--init --additional-flags "--privileged")
-  fi
 
   log "Creating Distrobox '$box_name'."
   run distrobox-create "${create_args[@]}"
@@ -284,10 +265,6 @@ if [[ "$run_template" -eq 1 ]]; then
     {
       cat "$project_baseline_template"
       printf '\n'
-      if [[ "$install_docker" -eq 1 ]]; then
-        cat "$docker_template"
-        printf '\n'
-      fi
       cat "$template_script"
     } | distrobox-enter --name "$box_name" -- bash -s -- "$project_mount" "$project_name"
 
@@ -302,8 +279,8 @@ else
   log "Skipping template run because --no-template-run was passed."
 fi
 
-if [[ "$install_docker" -eq 1 ]]; then
-  enable_vscode_docker_bridge "$vscode_docker_bridge_marker"
+if [[ "$enable_podman_devcontainers" -eq 1 ]]; then
+  enable_vscode_podman_bridge "$vscode_podman_bridge_marker"
 fi
 
 log "Ensuring ~/project points at ${project_mount} inside the box."
@@ -349,19 +326,16 @@ A convenience symlink is also created at:
   ~/project
 EOF
 
-if [[ "$install_docker" -eq 1 ]]; then
+if [[ "$enable_podman_devcontainers" -eq 1 ]]; then
   cat <<EOF
 
-Docker/Compose was requested for this project box. After entering the box, check:
-  docker --version
-  docker compose version
+Dev Containers were enabled for this project.
 
-If group membership changed, exit and re-enter the Distrobox before using Docker.
+VS Code will use host rootless Podman through project-local settings.
+Check the host runtime with:
+  podman info
 
-If Docker reports that /var/run/docker.sock does not exist, start the daemon with:
-  ws-docker-start ${project_name}
-
-The next ws-code launch will configure project-local Docker bridge settings for
+The next ws-code launch will configure project-local Podman settings for
 the VS Code Dev Containers extension.
 EOF
 fi

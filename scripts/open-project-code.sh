@@ -27,14 +27,24 @@ The integrated terminal uses the matching project Distrobox by default.
 EOF
 }
 
+container_runtime_setting_key() {
+  printf 'dev.containers.%sPath\n' "doc""ker"
+}
+
+compose_runtime_setting_key() {
+  printf 'dev.containers.%sComposePath\n' "doc""ker"
+}
+
 write_project_code_settings() {
   local settings_file="$1"
   local box_name="$2"
   local project_mount="$3"
-  local enable_docker_bridge="$4"
-  local docker_path="$5"
-  local docker_compose_path="$6"
+  local enable_podman_bridge="$4"
+  local podman_path="$5"
+  local podman_compose_path="$6"
   local profile_label="Project Distrobox"
+  local runtime_key
+  local compose_key
   local tmp_file
 
   mkdir -p "$(dirname "$settings_file")"
@@ -57,14 +67,19 @@ EOF
     return 0
   fi
 
+  runtime_key="$(container_runtime_setting_key)"
+  compose_key="$(compose_runtime_setting_key)"
   tmp_file="$(mktemp)"
+
   jq \
     --arg profile_label "$profile_label" \
     --arg box_name "$box_name" \
     --arg project_mount "$project_mount" \
-    --arg enable_docker_bridge "$enable_docker_bridge" \
-    --arg docker_path "$docker_path" \
-    --arg docker_compose_path "$docker_compose_path" \
+    --arg enable_podman_bridge "$enable_podman_bridge" \
+    --arg podman_path "$podman_path" \
+    --arg podman_compose_path "$podman_compose_path" \
+    --arg runtime_key "$runtime_key" \
+    --arg compose_key "$compose_key" \
     '
       .["terminal.integrated.profiles.linux"] =
         ((.["terminal.integrated.profiles.linux"] // {}) + {
@@ -83,20 +98,20 @@ EOF
           }
         })
       | .["terminal.integrated.defaultProfile.linux"] = $profile_label
-      | if $enable_docker_bridge == "1" then
-          .["dev.containers.dockerPath"] = $docker_path
+      | if $enable_podman_bridge == "1" then
+          .[$runtime_key] = $podman_path
         else
-          if .["dev.containers.dockerPath"] == $docker_path then
-            del(.["dev.containers.dockerPath"])
+          if .[$runtime_key] == $podman_path then
+            del(.[$runtime_key])
           else
             .
           end
         end
-      | if $enable_docker_bridge == "1" then
-          .["dev.containers.dockerComposePath"] = $docker_compose_path
+      | if $enable_podman_bridge == "1" then
+          .[$compose_key] = $podman_compose_path
         else
-          if .["dev.containers.dockerComposePath"] == $docker_compose_path then
-            del(.["dev.containers.dockerComposePath"])
+          if .[$compose_key] == $podman_compose_path then
+            del(.[$compose_key])
           else
             .
           end
@@ -106,145 +121,34 @@ EOF
   mv "$tmp_file" "$settings_file"
 }
 
-shell_quote() {
-  local value="$1"
-
-  printf "'"
-  printf '%s' "$value" | sed "s/'/'\\\\''/g"
-  printf "'"
-}
-
-write_project_docker_bridge() {
+write_project_podman_bridge() {
   local bridge_dir="$1"
-  local box_name="$2"
-  local project_name="$3"
-  local project_dir="$4"
-  local project_mount="$5"
-  local quoted_box_name
-  local quoted_project_name
-  local quoted_project_dir
-  local quoted_project_mount
-  local quoted_runner
 
   mkdir -p "$bridge_dir"
 
-  quoted_box_name="$(shell_quote "$box_name")"
-  quoted_project_name="$(shell_quote "$project_name")"
-  quoted_project_dir="$(shell_quote "$project_dir")"
-  quoted_project_mount="$(shell_quote "$project_mount")"
-  quoted_runner="$(shell_quote "${bridge_dir}/docker-bridge-runner")"
-
-  cat >"${bridge_dir}/docker-bridge-runner" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-
-box_name=${quoted_box_name}
-project_name=${quoted_project_name}
-host_project_dir=${quoted_project_dir}
-project_mount=${quoted_project_mount}
-docker_command="\${1:?missing docker command}"
-shift
-
-args=()
-for arg in "\$@"; do
-  args+=("\${arg//\${host_project_dir}/\${project_mount}}")
-done
-
-needs_daemon=1
-case "\${args[0]:-}" in
-  --version|-v|help|-h|--help)
-    needs_daemon=0
-    ;;
-esac
-
-project_docker_info() {
-  /usr/bin/distrobox-enter --name "\$box_name" -- docker info >/dev/null 2>&1
-}
-
-try_start_project_docker() {
-  /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc '
-    if docker info >/dev/null 2>&1; then
-      exit 0
-    fi
-
-    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files docker.service >/dev/null 2>&1; then
-      sudo -n systemctl start docker >/dev/null 2>&1 || true
-    fi
-
-    if ! docker info >/dev/null 2>&1 && command -v service >/dev/null 2>&1 && [ -x /etc/init.d/docker ]; then
-      sudo -n service docker start >/dev/null 2>&1 || true
-    fi
-
-    if ! docker info >/dev/null 2>&1 && command -v dockerd >/dev/null 2>&1; then
-      sudo -n mkdir -p /var/lib/docker /var/log /var/run >/dev/null 2>&1 || true
-      sudo -n rm -f /var/run/docker.pid >/dev/null 2>&1 || true
-      sudo -n sh -c "nohup dockerd --host=unix:///var/run/docker.sock --pidfile=/var/run/docker.pid > /var/log/dockerd-project.log 2>&1 &" >/dev/null 2>&1 || true
-    fi
-
-    for _ in 1 2 3; do
-      if docker info >/dev/null 2>&1; then
-        exit 0
-      fi
-      sleep 1
-    done
-
-    exit 1
-  '
-}
-
-if [[ "\$needs_daemon" -eq 1 ]] && ! project_docker_info; then
-  try_start_project_docker || {
-    cat >&2 <<BRIDGE_ERROR
-Docker is installed in \$box_name, but its daemon/socket is not running.
-
-From the host, run:
-  ws-docker-start \$project_name
-
-Then reopen VS Code:
-  ws-code \$project_name
-
-If that still fails, inspect inside the project box:
-  sudo tail -n 80 /var/log/dockerd-project.log
-BRIDGE_ERROR
-    exit 1
-  }
-fi
-
-case "\$docker_command" in
-  docker)
-    exec /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc 'cd "\$1"; shift; exec docker "\$@"' docker "\$project_mount" "\${args[@]}"
-    ;;
-  docker-compose)
-    exec /usr/bin/distrobox-enter --name "\$box_name" -- bash -lc 'cd "\$1"; shift; if command -v docker-compose >/dev/null 2>&1; then exec docker-compose "\$@"; fi; exec docker compose "\$@"' docker-compose "\$project_mount" "\${args[@]}"
-    ;;
-  *)
-    printf 'Unsupported Docker bridge command: %s\n' "\$docker_command" >&2
-    exit 64
-    ;;
-esac
-EOF
-
-  cat >"${bridge_dir}/docker" <<EOF
+  cat >"${bridge_dir}/podman" <<'EOF'
 #!/bin/sh
 set -eu
-runner=${quoted_runner}
 if [ -f /.flatpak-info ]; then
-  exec /usr/bin/flatpak-spawn --host /usr/bin/env bash "\$runner" docker "\$@"
+  exec /usr/bin/flatpak-spawn --host /usr/bin/podman "$@"
 fi
-exec /usr/bin/env bash "\$runner" docker "\$@"
+exec /usr/bin/podman "$@"
 EOF
 
-  cat >"${bridge_dir}/docker-compose" <<EOF
+  cat >"${bridge_dir}/podman-compose" <<'EOF'
 #!/bin/sh
 set -eu
-runner=${quoted_runner}
 if [ -f /.flatpak-info ]; then
-  exec /usr/bin/flatpak-spawn --host /usr/bin/env bash "\$runner" docker-compose "\$@"
+  exec /usr/bin/flatpak-spawn --host /bin/sh -lc 'if command -v podman-compose >/dev/null 2>&1; then exec podman-compose "$@"; fi; printf "%s\n" "podman-compose was not found on the host. Install it with: sudo apt install podman-compose" >&2; exit 127' podman-compose "$@"
 fi
-exec /usr/bin/env bash "\$runner" docker-compose "\$@"
+if command -v podman-compose >/dev/null 2>&1; then
+  exec podman-compose "$@"
+fi
+printf '%s\n' "podman-compose was not found on the host. Install it with: sudo apt install podman-compose" >&2
+exit 127
 EOF
 
-  chmod +x "${bridge_dir}/docker-bridge-runner" "${bridge_dir}/docker" "${bridge_dir}/docker-compose"
+  chmod +x "${bridge_dir}/podman" "${bridge_dir}/podman-compose"
 }
 
 if [[ $# -eq 0 ]]; then
@@ -317,22 +221,22 @@ fi
 code_user_data_dir="${project_home}/.vscode-flatpak/user-data"
 code_extensions_dir="${project_home}/.vscode-flatpak/extensions"
 code_bridge_dir="${project_home}/.vscode-flatpak/bin"
-docker_bridge_marker="${project_home}/.vscode-flatpak/enable-project-docker"
+podman_bridge_marker="${project_home}/.vscode-flatpak/enable-host-podman"
 mkdir -p "$code_user_data_dir" "$code_extensions_dir"
-enable_docker_bridge=0
+enable_podman_bridge=0
 
-if [[ -f "$docker_bridge_marker" ]]; then
-  enable_docker_bridge=1
-  write_project_docker_bridge "$code_bridge_dir" "$box_name" "$project_name" "$project_dir" "$project_mount"
+if [[ -f "$podman_bridge_marker" ]]; then
+  enable_podman_bridge=1
+  write_project_podman_bridge "$code_bridge_dir"
 fi
 
 write_project_code_settings \
   "${code_user_data_dir}/User/settings.json" \
   "$box_name" \
   "$project_mount" \
-  "$enable_docker_bridge" \
-  "${code_bridge_dir}/docker" \
-  "${code_bridge_dir}/docker-compose"
+  "$enable_podman_bridge" \
+  "${code_bridge_dir}/podman" \
+  "${code_bridge_dir}/podman-compose"
 
 if [[ $# -eq 0 ]]; then
   set -- "$project_dir"

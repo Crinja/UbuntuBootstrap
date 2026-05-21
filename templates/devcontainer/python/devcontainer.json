@@ -1,8 +1,6 @@
 {
   "name": "Python Project",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "customizations": {

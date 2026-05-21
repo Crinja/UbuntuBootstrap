@@ -63,19 +63,17 @@ ws-code ExampleProject
 project-specific Code state under `~/Boxes/projects/<project>/.vscode-flatpak`.
 Extensions installed from that window stay out of the normal default Code
 state. The integrated terminal defaults to the matching project Distrobox.
-If the project was created with `--with-docker`, `ws-code` also points the Dev
-Containers extension at that project Distrobox's Docker CLI.
+If the project was created with `--with-devcontainer` or `--with-podman`,
+`ws-code` also points the Dev Containers extension at host rootless Podman.
 
-Docker is opt-in per project for devcontainer-heavy repos:
+Podman-backed Dev Containers are opt-in per project:
 
 ```bash
-ws-new node WebApp --with-devcontainer --with-docker
+ws-new node WebApp --with-devcontainer
 ```
 
-That installs Docker/Compose inside `project-webapp` and enables the
-project-local VS Code bridge for Dev Containers. Docker-enabled boxes are
-created with extra init/privileged container settings because they run a nested
-daemon; keep that opt-in for trusted repos.
+That copies a `.devcontainer/` template into the project and enables the
+project-local VS Code bridge to host Podman.
 
 AI tools are also opt-in per project:
 
@@ -103,13 +101,12 @@ manual until I add their app IDs.
 ```bash
 ws-new rust ExampleProject
 ws-new node WebExample
-ws-new dotnet ApiExample --with-devcontainer --with-docker
+ws-new dotnet ApiExample --with-devcontainer
 ws-new python HeadlessScript
 ws-new rust AgentProject --with-claude
 
 ws-enter ExampleProject
 ws-code ExampleProject
-ws-docker-start ExampleProject
 ws-list
 ws-remove ExampleProject
 ```
@@ -141,8 +138,7 @@ state stays local to that project's Distrobox home.
 - No Rust, Node, .NET SDKs, databases, or project CLIs on the host.
 - No VS Code apt/deb on the host and no VS Code inside every Distrobox. VS Code
   lives as a Flatpak GUI app.
-- No Docker on the host by default; use Podman on the host and `--with-docker`
-  only for project boxes that need it.
+- Host Podman is the container runtime for Dev Containers.
 - No Claude Code or Codex CLI on the host. Add them per project with
   `--with-claude`, `--with-codex`, `--with-ai`, or `ws-ai-add`.
 - GUI apps should usually be Flatpaks. VS Code is included by default; other

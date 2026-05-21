@@ -12,6 +12,7 @@ build-essential
 flatpak
 gnome-software-plugin-flatpak
 podman
+podman-compose
 distrobox
 gnome-boxes
 virt-manager

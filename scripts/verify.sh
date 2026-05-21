@@ -74,6 +74,7 @@ else
 fi
 
 check_command podman
+check_command podman-compose
 check_command distrobox
 check_command distrobox-create
 
@@ -103,7 +104,7 @@ else
   check_fail "Flatpak app status available"
 fi
 
-for wrapper in ws-new ws-enter ws-code ws-docker-start ws-ai-add ws-list ws-remove ws-help; do
+for wrapper in ws-new ws-enter ws-code ws-ai-add ws-list ws-remove ws-help; do
   if [[ -x "${REPO_ROOT}/bin/${wrapper}" ]]; then
     check_pass "wrapper executable: $wrapper"
   else

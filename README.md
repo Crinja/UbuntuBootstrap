@@ -59,9 +59,10 @@ ws-enter ExampleProject
 ws-code ExampleProject
 ```
 
-`ws-code` launches the VS Code Flatpak against `~/Projects/<project>` with a
-project-specific profile named `project-<normalized-project>`. Extensions I
-install in that profile stay separate from other project profiles.
+`ws-code` launches the VS Code Flatpak against `~/Projects/<project>` with
+project-specific Code state under `~/Boxes/projects/<project>/.vscode-flatpak`.
+Extensions installed from that window stay out of the normal default Code
+state. The integrated terminal defaults to the matching project Distrobox.
 
 Docker is opt-in per project for devcontainer-heavy repos:
 

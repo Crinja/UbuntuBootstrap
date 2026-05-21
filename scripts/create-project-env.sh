@@ -200,7 +200,7 @@ log "Distrobox: ${box_name}"
 log "Source folder: ${project_dir}"
 log "Box home: ${box_home}"
 log "Image: ${image}"
-log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with a project profile"
+log "Editor: use ws-code ${project_name} to launch the VS Code Flatpak with project-specific Code state"
 if [[ "$install_docker" -eq 1 ]]; then
   log "Container tooling: Docker/Compose will be installed inside the project box"
 else

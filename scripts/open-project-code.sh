@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the VS Code Flatpak with a project-specific profile.
+# Launch the VS Code Flatpak with project-specific settings and extensions.
 
 set -euo pipefail
 
@@ -13,18 +13,73 @@ Usage:
   ./scripts/open-project-code.sh <project-name> [code-args...]
 
 Options:
-  --profile <name>   Use a custom VS Code profile name.
-  --no-profile       Launch without selecting a VS Code profile.
+  --profile <name>   Deprecated no-op; project Code state handles isolation.
+  --no-profile       Deprecated no-op; project Code state handles isolation.
   --app-id <id>      Flatpak app ID. Default: com.visualstudio.code
 
 Examples:
   ws-code ExampleProject
   ws-code ExampleProject .
-  ws-code --profile rust-nightly CompilerExperiment
 
 VS Code is launched from Flatpak. Project-specific extensions and settings live
-in the selected VS Code profile.
+under ~/Boxes/projects/<project>/.vscode-flatpak.
+The integrated terminal uses the matching project Distrobox by default.
 EOF
+}
+
+write_project_terminal_settings() {
+  local settings_file="$1"
+  local box_name="$2"
+  local project_mount="$3"
+  local profile_label="Project Distrobox"
+  local tmp_file
+
+  mkdir -p "$(dirname "$settings_file")"
+
+  if [[ ! -f "$settings_file" ]]; then
+    cat >"$settings_file" <<EOF
+{}
+EOF
+  fi
+
+  if ! command_exists jq; then
+    warn "jq is not installed; cannot update VS Code terminal settings automatically."
+    warn "Run ./bootstrap.sh, then rerun ws-code for project Distrobox terminal integration."
+    return 0
+  fi
+
+  if ! jq empty "$settings_file" >/dev/null 2>&1; then
+    warn "VS Code settings are not valid plain JSON: ${settings_file}"
+    warn "Project Distrobox terminal integration was not written."
+    return 0
+  fi
+
+  tmp_file="$(mktemp)"
+  jq \
+    --arg profile_label "$profile_label" \
+    --arg box_name "$box_name" \
+    --arg project_mount "$project_mount" \
+    '
+      .["terminal.integrated.profiles.linux"] =
+        ((.["terminal.integrated.profiles.linux"] // {}) + {
+          ($profile_label): {
+            "path": "/usr/bin/flatpak-spawn",
+            "args": [
+              "--host",
+              "/usr/bin/distrobox-enter",
+              "--name",
+              $box_name,
+              "--",
+              "bash",
+              "-lc",
+              ("cd " + $project_mount + " && exec bash -i")
+            ]
+          }
+        })
+      | .["terminal.integrated.defaultProfile.linux"] = $profile_label
+    ' "$settings_file" >"$tmp_file"
+
+  mv "$tmp_file" "$settings_file"
 }
 
 if [[ $# -eq 0 ]]; then
@@ -38,18 +93,16 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
 fi
 
 app_id="${WS_VSCODE_FLATPAK_APP_ID:-com.visualstudio.code}"
-profile_name=""
-use_profile=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile)
       [[ $# -ge 2 ]] || die "--profile requires a value."
-      profile_name="$2"
+      warn "--profile is deprecated and ignored; project Code state handles isolation."
       shift 2
       ;;
     --no-profile)
-      use_profile=0
+      warn "--no-profile is deprecated and ignored; project Code state handles isolation."
       shift
       ;;
     --app-id)
@@ -77,20 +130,29 @@ done
 
 project_name="$1"
 normalized_project="$(normalize_project_name "$project_name")"
+box_name="project-${normalized_project}"
 project_dir="$(find_project_dir_by_normalized_name "$project_name")"
+project_home="$(find_project_home_by_normalized_name "$project_name")"
+project_mount="/work/${normalized_project}"
 shift
 
 [[ -d "$project_dir" ]] || die "Project folder does not exist: $project_dir"
 
-if [[ -z "$profile_name" ]]; then
-  profile_name="project-${normalized_project}"
-fi
-
 command_exists flatpak || die "flatpak is not installed. Run ./bootstrap.sh first."
+command_exists distrobox-enter || die "distrobox-enter is not installed. Run ./bootstrap.sh first."
+
+if ! distrobox_exists "$box_name"; then
+  die "Distrobox '${box_name}' does not exist. Create it with: ws-new <template> ${project_name}"
+fi
 
 if ! flatpak info "$app_id" >/dev/null 2>&1; then
   die "VS Code Flatpak '${app_id}' is not installed. Run: ./scripts/install-flatpaks.sh"
 fi
+
+code_user_data_dir="${project_home}/.vscode-flatpak/user-data"
+code_extensions_dir="${project_home}/.vscode-flatpak/extensions"
+mkdir -p "$code_user_data_dir" "$code_extensions_dir"
+write_project_terminal_settings "${code_user_data_dir}/User/settings.json" "$box_name" "$project_mount"
 
 if [[ $# -eq 0 ]]; then
   set -- "$project_dir"
@@ -112,8 +174,9 @@ else
   set -- "${code_args[@]}"
 fi
 
-if [[ "$use_profile" -eq 1 ]]; then
-  exec flatpak run "$app_id" --profile "$profile_name" "$@"
-fi
+code_options=(
+  --user-data-dir "$code_user_data_dir"
+  --extensions-dir "$code_extensions_dir"
+)
 
-exec flatpak run "$app_id" "$@"
+exec flatpak run "$app_id" "${code_options[@]}" "$@"

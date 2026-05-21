@@ -41,16 +41,17 @@ ws-code ExampleProject
 Templates install the shared Git/workflow baseline first, then optional language
 tooling for that project only.
 
-Project boxes do not install VS Code. `ws-code` opens the source folder with the
-VS Code Flatpak and a project-specific profile:
+Project boxes do not install VS Code. `ws-code` opens the source folder with
+the VS Code Flatpak and project-specific Code state:
 
 ```bash
 ws-new rust ExampleProject
 ws-code ExampleProject
 ```
 
-The project Distrobox still owns the toolchain; VS Code profiles own editor
-extensions and UI settings.
+The project Distrobox still owns the toolchain; `ws-code` stores editor
+settings and extensions under `~/Boxes/projects/<project>/.vscode-flatpak`.
+Its integrated terminal defaults to the matching `project-<name>` Distrobox.
 
 Docker is opt-in for repos that need devcontainers or Docker Compose:
 

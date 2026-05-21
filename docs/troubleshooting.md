@@ -51,11 +51,36 @@ Check the VS Code Flatpak:
 flatpak info com.visualstudio.code
 ```
 
-Open a project with its profile:
+Open a project with project-local Code state:
 
 ```bash
 ws-code ExampleProject
 ```
+
+Project-local Code state should appear under:
+
+```text
+~/Boxes/projects/ExampleProject/.vscode-flatpak/user-data
+~/Boxes/projects/ExampleProject/.vscode-flatpak/extensions
+```
+
+The integrated terminal should default to `Project Distrobox`. Check inside a
+new VS Code terminal:
+
+```bash
+pwd
+command -v cargo node python3
+```
+
+If the terminal starts on the host, rerun:
+
+```bash
+ws-code ExampleProject
+```
+
+That rewrites the project-local VS Code terminal profile. The terminal profile
+uses `flatpak-spawn --host`, so the VS Code Flatpak must be allowed to talk to
+the host Flatpak portal.
 
 If `ws-code` says VS Code is not installed, run:
 

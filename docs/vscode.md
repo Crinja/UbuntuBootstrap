@@ -12,14 +12,24 @@ ws-code ExampleProject
 That launches the VS Code Flatpak with:
 
 ```text
-Folder:  ~/Projects/ExampleProject
-Profile: project-exampleproject
+Folder:     ~/Projects/ExampleProject
+User data:  ~/Boxes/projects/ExampleProject/.vscode-flatpak/user-data
+Extensions: ~/Boxes/projects/ExampleProject/.vscode-flatpak/extensions
 ```
 
-Extensions and editor settings installed while that profile is active stay
-separate from other project profiles.
+Extensions and editor settings installed from that window stay local to that
+project's Code state. Opening Code normally uses the default Flatpak Code state.
 
-Project Distroboxes still own the toolchains:
+The integrated terminal defaults to a `Project Distrobox` profile that runs:
+
+```text
+flatpak-spawn --host /usr/bin/distrobox-enter --name project-exampleproject -- bash -lc 'cd /work/exampleproject && exec bash -i'
+```
+
+So a new VS Code terminal starts inside the project Distrobox with the project
+toolchain available.
+
+Project Distroboxes still own the toolchains outside the editor too:
 
 ```bash
 ws-enter ExampleProject

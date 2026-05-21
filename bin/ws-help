@@ -20,7 +20,8 @@ Common commands:
       Remove a project Distrobox after confirmation.
 
   ws-code <project-name> [code-args...]
-      Launch the VS Code Flatpak with a project-specific profile.
+      Launch the VS Code Flatpak with project-specific settings/extensions.
+      Integrated terminals enter the matching project Distrobox.
 
   ws-ai-add <project-name> --claude|--codex|--all
       Add project-local Claude Code and/or Codex CLI to an existing project box.
